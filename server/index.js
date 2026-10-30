@@ -438,6 +438,13 @@ app.get('/api/v1/admin/overview', requireAdmin, async (_req, res) => {
   res.json({ customers: customers.total, templates: templates.total, projects: projects.total, enquiries: enquiries.total });
 });
 
+const clientDist = path.resolve(__dirname, '../client/dist');
+app.use(express.static(clientDist));
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(clientDist, 'index.html'), (error) => error ? next(error) : undefined);
+});
+
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ message: 'Unexpected server error.' }); });
 
 initializeDatabase().then(() => app.listen(port, () => console.log(`Web Guruji API running on http://localhost:${port}`))).catch((error) => { console.error('Database startup failed:', error.message); process.exitCode = 1; });
