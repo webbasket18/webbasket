@@ -64,6 +64,96 @@ const plans = [
   { id: 'dynamic-5', name: 'Dynamic Website', price: '₹2,000', eyebrow: 'Tell the full story', description: 'More room for your work, services, and credibility.', items: ['Five configured pages', 'Data-driven content', 'Expanded navigation', 'Basic SEO fields'], icon: Crown }
 ];
 
+const SEO_BASE_URL = 'https://webbasket.org';
+
+function setMetaTag(attribute, key, content) {
+  let tag = document.head.querySelector(`meta[${attribute}="${key}"]`);
+  if (!tag) {
+    tag = document.createElement('meta');
+    tag.setAttribute(attribute, key);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute('content', content);
+}
+
+function SEOManager({ templates }) {
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    const templateId = path.startsWith('/builder/') ? path.split('/').pop() : '';
+    const template = templates.find((item) => String(item.id) === templateId);
+    const categoryKeywords = {
+      restaurants: 'restaurant website template, restaurant website design India, online menu website, restaurant booking website',
+      salons: 'salon website template, beauty salon website design India, appointment website',
+      construction: 'construction website template, builder website design India, contractor portfolio website',
+      clinics: 'clinic website template, healthcare website design India, doctor appointment website',
+      'real-estate': 'real estate website template, property website design India, real estate lead website',
+      'professional-services': 'consulting website template, professional services website India, business portfolio website'
+    };
+    const page = path === '/' ? {
+      title: 'WebBasket | Affordable Business Websites in India',
+      description: 'Build an affordable, professional business website in India with WebBasket templates, live preview, WhatsApp enquiries and source-code delivery.',
+      keywords: 'business website builder India, website templates India, affordable website design, one page website, responsive business website'
+    } : path === '/templates' ? {
+      title: 'Business Website Templates for India | WebBasket',
+      description: 'Browse responsive website templates for restaurants, salons, clinics, construction companies, real estate and professional services.',
+      keywords: 'business website templates India, responsive website templates, restaurant website template, salon website template, clinic website template'
+    } : path === '/pricing' ? {
+      title: 'Affordable Website Design Packages in India | WebBasket',
+      description: 'Compare transparent WebBasket website packages starting at ₹1,000, with live preview, responsive layouts and source-code delivery.',
+      keywords: 'affordable website design India, website price India, one page website price, website packages for small business'
+    } : template ? {
+      title: `${template.name} | ${template.category_name} Website Template | WebBasket`,
+      description: `${template.description} Customize this responsive ${template.category_name.toLowerCase()} website template with your business content and preview it live.`,
+      keywords: `${categoryKeywords[template.category_slug] || 'business website template India'}, WebBasket ${template.name} template`
+    } : path === '/admin' ? {
+      title: 'WebBasket Admin',
+      description: 'WebBasket administration dashboard.',
+      keywords: 'WebBasket admin'
+    } : path === '/dashboard' ? {
+      title: 'Customer Website Dashboard | WebBasket',
+      description: 'Manage your WebBasket website projects, orders and downloads.',
+      keywords: 'website project dashboard, WebBasket customer dashboard'
+    } : {
+      title: 'WebBasket | Business Website Builder India',
+      description: 'Create a professional, responsive business website with WebBasket.',
+      keywords: 'business website builder India, professional website design'
+    };
+    const noIndex = path === '/admin' || path === '/dashboard' || path.startsWith('/builder/');
+    const canonicalPath = path === '/' ? '/' : path;
+    const canonicalUrl = `${SEO_BASE_URL}${canonicalPath}`;
+    document.title = page.title;
+    setMetaTag('name', 'description', page.description);
+    setMetaTag('name', 'keywords', page.keywords);
+    setMetaTag('name', 'robots', noIndex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large');
+    setMetaTag('property', 'og:title', page.title);
+    setMetaTag('property', 'og:description', page.description);
+    setMetaTag('property', 'og:url', canonicalUrl);
+    setMetaTag('property', 'og:type', path === '/' ? 'website' : 'article');
+    setMetaTag('name', 'twitter:title', page.title);
+    setMetaTag('name', 'twitter:description', page.description);
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalUrl;
+    const organization = { '@context': 'https://schema.org', '@type': 'Organization', name: 'WebBasket', url: SEO_BASE_URL, description: 'Affordable business website templates and website design for Indian businesses.' };
+    const schema = path === '/' ? [organization, { '@context': 'https://schema.org', '@type': 'WebSite', name: 'WebBasket', url: SEO_BASE_URL, potentialAction: { '@type': 'SearchAction', target: `${SEO_BASE_URL}/templates?search={search_term_string}`, 'query-input': 'required name=search_term_string' } }] : path === '/templates' ? { '@context': 'https://schema.org', '@type': 'CollectionPage', name: page.title, description: page.description, url: canonicalUrl, mainEntity: { '@type': 'ItemList', itemListElement: templates.slice(0, 12).map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, url: `${SEO_BASE_URL}/builder/${item.id}` })) } } : template ? { '@context': 'https://schema.org', '@type': 'Product', name: template.name, description: page.description, brand: { '@type': 'Brand', name: 'WebBasket' }, category: template.category_name, offers: { '@type': 'Offer', price: Number(template.price) || 1000, priceCurrency: 'INR', availability: 'https://schema.org/InStock', url: canonicalUrl } } : organization;
+    let structuredData = document.getElementById('webbasket-structured-data');
+    if (!structuredData) {
+      structuredData = document.createElement('script');
+      structuredData.id = 'webbasket-structured-data';
+      structuredData.type = 'application/ld+json';
+      document.head.appendChild(structuredData);
+    }
+    structuredData.textContent = JSON.stringify(schema);
+    if (typeof window.gtag === 'function') window.gtag('event', 'page_view', { page_title: page.title, page_location: `${window.location.origin}${location.pathname}${location.search}`, page_path: `${location.pathname}${location.search}` });
+  }, [location.pathname, location.search, templates]);
+  return null;
+}
+
 function App() {
   const [templates, setTemplates] = useState(demoTemplates);
   const [categoriesData, setCategoriesData] = useState(categories);
@@ -79,6 +169,7 @@ function App() {
   const showToast = (message) => { setToast(message); window.setTimeout(() => setToast(''), 3400); };
   return <>
     <SiteChrome onAccount={() => setAccountOpen(true)} />
+    <SEOManager templates={templates} />
     <Routes>
       <Route path="/" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
       <Route path="/templates" element={<Marketplace templates={templates} categories={categoriesData} />} />
