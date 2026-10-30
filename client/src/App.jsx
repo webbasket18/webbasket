@@ -784,7 +784,6 @@ export default App;
 
 function WhatsAppFloat() {
   const location = useLocation();
-  if (location.pathname.startsWith('/builder')) return null;
   const pageMessage = location.pathname.startsWith('/builder')
     ? 'Hi Web Guruji, I am customizing a website and need help choosing the right package.'
     : location.pathname === '/pricing'
