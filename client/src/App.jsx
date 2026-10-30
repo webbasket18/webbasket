@@ -222,6 +222,9 @@ const businessVariantExtras = {
   digital: { title: 'Turn attention into action.', copy: 'Explain the product, show the value and move users toward the right next step.', items: ['Product', 'Plans', 'Start building'] },
   community: { title: 'A place for people to gather.', copy: 'Make mission, programs, events and support easy to discover.', items: ['Our mission', 'Programs', 'Get involved'] }
 };
+const businessVariantLayouts = {
+  warm: 'personal', retail: 'catalog', culinary: 'menu', editorial: 'lookbook', blueprint: 'case-study', learn: 'programme', care: 'appointment', industrial: 'capability', mobility: 'garage', earth: 'farm', travel: 'destination', energy: 'event', enterprise: 'corporate', digital: 'product', community: 'mission'
+};
 
 const businessCategoryTemplates = uniqueBusinessCategoryCatalog
   .filter((category) => !demoTemplates.some((template) => template.category_slug === category.slug) && !['portfolios', 'manufacturing'].includes(category.slug))
@@ -239,6 +242,7 @@ const businessCategoryTemplates = uniqueBusinessCategoryCatalog
     thumbnail_url: categoryImagePool[(index + category.groupIndex) % categoryImagePool.length],
     palette: category.variant,
     designVariant: category.variant,
+    layoutMode: businessVariantLayouts[category.variant] || 'case-study',
     variantLabel: category.label,
     heroTitle: `${category.name} made clear, memorable and ready to grow.`,
     aboutTitle: `A better digital front door for ${category.name.toLowerCase()}.`,
@@ -1113,13 +1117,14 @@ function BusinessVariantPreview({ template, businessName, tagline, about, phone,
   const [sent, setSent] = useState(false);
   const rootRef = useRef(null);
   const variant = template.designVariant || 'editorial';
+  const layoutMode = template.layoutMode || businessVariantLayouts[variant] || 'case-study';
   const config = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
   const services = template.serviceItems?.length ? template.serviceItems : config.services;
   const extra = template.extraSection || businessVariantExtras.blueprint;
   const images = mediaPreviews.length ? mediaPreviews.map((item) => item.url) : [template.thumbnail_url, categoryImagePool[template.id % categoryImagePool.length], categoryImagePool[(template.id + 3) % categoryImagePool.length]];
   const goTo = (selector) => rootRef.current?.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const submit = (event) => { submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: `New ${template.category_name} enquiry.` }); setSent(true); };
-  return <div ref={rootRef} className={`builder-preview full-site-preview-panel category-template-preview business-variant-preview category-design-${variant}`}><div className="preview-toolbar"><span>{template.name} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className={`business-variant-site variant-${variant}`}>
+  return <div ref={rootRef} className={`builder-preview full-site-preview-panel category-template-preview business-variant-preview category-design-${variant}`}><div className="preview-toolbar"><span>{template.name} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className={`business-variant-site variant-${variant} layout-${layoutMode}`}>
     <header className="business-variant-nav"><button className="business-variant-brand" onClick={() => goTo('.business-variant-site')}><span>{String(businessName || template.category_name).slice(0, 2).toUpperCase()}</span><b>{businessName || template.category_name}</b></button><nav><button onClick={() => goTo('#variant-about')}>About</button><button onClick={() => goTo('#variant-services')}>Services</button><button onClick={() => goTo('#variant-work')}>Work</button><button onClick={() => goTo('#variant-contact')}>Contact</button></nav><button className="business-variant-cta" onClick={() => goTo('#variant-contact')}>{ctaLabel || 'Get started'} <ArrowUpRight size={13} /></button></header>
     <section className="business-variant-hero"><div className="business-variant-hero-copy"><small>{template.variantLabel || config.label}</small><h2>{template.heroTitle || tagline || config.defaultTagline}</h2><p>{about || config.defaultAbout}</p><div className="business-variant-actions"><button className="business-variant-primary" onClick={() => goTo('#variant-contact')}>{ctaLabel || 'Get started'} <ArrowRight size={13} /></button><button className="business-variant-secondary" onClick={() => goTo('#variant-services')}>Explore <ArrowRight size={13} /></button></div></div><div className="business-variant-hero-art"><img src={images[0]} alt={`${businessName} hero`} /><span>{template.category_name}</span><i /></div></section>
     <div className="business-variant-ribbon"><span>01 · CLEAR POSITIONING</span><span>02 · BUSINESS-SPECIFIC SECTIONS</span><span>03 · WHATSAPP-FIRST ENQUIRIES</span></div>
