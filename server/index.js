@@ -331,10 +331,33 @@ app.post('/api/v1/auth/logout', requireAuth, async (req, res) => {
 });
 
 app.post('/api/v1/projects', async (req, res) => {
-  const { templateId, projectName, businessName, content = {} } = req.body || {};
+  const { templateId, projectName, businessName, content = {}, templateName, templateSlug, templateDescription = '', categorySlug = 'professional-services', categoryName = 'Professional Services', templatePages = 1, templateType = 'Static', templatePrice = 1000, thumbnailUrl = 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85' } = req.body || {};
   if (!templateId || !projectName) return res.status(400).json({ message: 'Template and project name are required.' });
+  let resolvedTemplateId = Number(templateId);
+  const [[existingTemplate]] = await pool.query('SELECT id FROM templates WHERE id = ?', [resolvedTemplateId]);
+  if (!existingTemplate) {
+    const safeCategorySlug = String(categorySlug || 'professional-services').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 120) || 'professional-services';
+    let [[category]] = await pool.query('SELECT id, name FROM categories WHERE slug = ?', [safeCategorySlug]);
+    if (!category) {
+      try {
+        const [categoryResult] = await pool.query('INSERT INTO categories (name, slug, description, accent) VALUES (?, ?, ?, ?)', [String(categoryName || safeCategorySlug).slice(0, 100), safeCategorySlug, `${categoryName || 'Business'} website templates.`, '#2563EB']);
+        category = { id: categoryResult.insertId, name: categoryName || safeCategorySlug };
+      } catch (error) {
+        if (error.code !== 'ER_DUP_ENTRY') throw error;
+        [[category]] = await pool.query('SELECT id, name FROM categories WHERE slug = ?', [safeCategorySlug]);
+      }
+    }
+    const baseSlug = String(templateSlug || templateName || `template-${resolvedTemplateId}`).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 140) || `template-${resolvedTemplateId}`;
+    const templateRecordSlug = `${baseSlug}-${resolvedTemplateId}`.slice(0, 159);
+    const [[existingBySlug]] = await pool.query('SELECT id FROM templates WHERE slug = ?', [templateRecordSlug]);
+    if (existingBySlug) resolvedTemplateId = existingBySlug.id;
+    else {
+      const [templateResult] = await pool.query('INSERT INTO templates (category_id, name, slug, description, pages, type, price, featured, demo, thumbnail_url, palette, features) VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, TRUE, ?, ?, ?)', [category.id, String(templateName || projectName).slice(0, 140), templateRecordSlug, String(templateDescription || 'Customer-ready business website template.'), Math.max(1, Number(templatePages) || 1), templateType === 'Dynamic' ? 'Dynamic' : 'Static', Math.max(0, Number(templatePrice) || 0), thumbnailUrl, 'custom', JSON.stringify(['Responsive layout', 'Live preview', 'WhatsApp enquiry form'])]);
+      resolvedTemplateId = templateResult.insertId;
+    }
+  }
   const user = await currentUser(req);
-  const [result] = await pool.query('INSERT INTO website_projects (user_id, template_id, project_name, business_name, content) VALUES (?, ?, ?, ?, ?)', [user?.id || null, templateId, projectName, businessName || null, JSON.stringify(content)]);
+  const [result] = await pool.query('INSERT INTO website_projects (user_id, template_id, project_name, business_name, content) VALUES (?, ?, ?, ?, ?)', [user?.id || null, resolvedTemplateId, projectName, businessName || null, JSON.stringify(content)]);
   res.status(201).json({ id: result.insertId, status: 'draft' });
 });
 
