@@ -774,3 +774,36 @@ h1, h2, h3 { font-family: Manrope, sans-serif; letter-spacing: -.04em; line-heig
 .hero-replay { right: 15px; bottom: 0; }
 @media (max-width:1000px) and (min-width:761px) { .hero-grid { min-height: 515px; grid-template-columns: .9fr 1.1fr; }.hero-visual { min-height: 500px; }.hero h1 { font-size: clamp(45px, 5.2vw, 62px); }.hero-copy > p { font-size: 14px; }.hero-feature-grid span { font-size: 10px; } }
 @media (max-width:760px) { .hero { padding-top: 38px; }.hero-grid { min-height: 0; }.hero-visual { min-height: 435px; margin-top: 26px; }.hero-door-reveal { top: 18px; right: 4px; bottom: 28px; left: 4px; border-radius: 18px; }.edit-chip { top: 0; right: 14px; transform: scale(.82) rotate(3deg); transform-origin: right top; }.draft-card { bottom: 0; left: 0; transform: scale(.82) rotate(-2deg); transform-origin: left bottom; }.hero-replay { right: 8px; bottom: 6px; } }
+
+/* Keep every long website preview independently scrollable. Some custom templates
+   are much taller than the preview viewport and must not be stretched by flex. */
+.full-preview-frame {
+  align-items: flex-start;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+.full-preview-frame > .full-site-preview,
+.full-preview-frame > .portfolio-preview-site,
+.full-preview-frame > .manufacturing-preview-site,
+.full-preview-frame > .hotel-gavkari-site,
+.full-preview-frame > .business-variant-site,
+.full-preview-frame > .maison-preview-site {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  height: auto;
+  min-height: max-content;
+}
+.maison-preview-panel .full-preview-frame {
+  height: 640px;
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: scroll;
+}
+@media (max-width:760px) {
+  .full-preview-frame { height: 600px; }
+}
