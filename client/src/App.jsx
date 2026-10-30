@@ -816,8 +816,15 @@ function PreviewWhatsAppFloat({ number }) {
     if (!launcher || !frame) return undefined;
     const updatePosition = () => {
       const height = launcher.offsetHeight || 52;
+      const previewSite = launcher.previousElementSibling;
+      const frameRect = frame.getBoundingClientRect();
+      const siteRect = previewSite?.getBoundingClientRect();
       launcher.style.top = `${frame.scrollTop + frame.clientHeight - height - 16}px`;
       launcher.style.bottom = 'auto';
+      if (siteRect) {
+        launcher.style.left = `${siteRect.right - frameRect.left + frame.scrollLeft - (launcher.offsetWidth || 52) - 12}px`;
+        launcher.style.right = 'auto';
+      }
     };
     updatePosition();
     frame.addEventListener('scroll', updatePosition, { passive: true });
