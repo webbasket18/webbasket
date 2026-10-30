@@ -43,9 +43,15 @@ const templateSeeds = [
   ['clinics', 'Mediwell Clinic', 'A calm one-page clinic website for treatments, doctors and appointments.', 1, 'Static', 1000, 1, 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=85', 'mint'],
   ['real-estate', 'Cedar & Co.', 'A property-first one-page website for listings, trust and enquiries.', 1, 'Static', 1000, 1, 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=85', 'violet'],
   ['professional-services', 'Northstar Advisory', 'A sharp one-page professional website for expertise, proof and enquiries.', 1, 'Static', 1000, 1, 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85', 'slate'],
+  ['restaurants', 'Saffron Table', 'A three-page restaurant website for menu, story and reservations.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1200&q=85', 'saffron'],
+  ['salons', 'Atelier Mira', 'A three-page salon website for services, team and appointments.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=85', 'blush'],
+  ['construction', 'Builtline Studio', 'A three-page construction website for work, capabilities and enquiries.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=85', 'steel'],
+  ['clinics', 'Harbor Health', 'A three-page clinic website for care, specialists and appointments.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=85', 'sky'],
+  ['real-estate', 'Hearth & Key', 'A three-page property website for listings, advice and enquiries.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85', 'sand'],
+  ['professional-services', 'Fieldnote Partners', 'A three-page advisory website for expertise, proof and contact.', 3, 'Dynamic', 1500, 0, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=85', 'graphite'],
 ];
 
-const publishedTemplateSlugs = ['maison-aurele', 'mira-studio', 'form-foundation', 'mediwell-clinic', 'cedar-co', 'cedar-co-', 'northstar-advisory'];
+const publishedTemplateSlugs = ['maison-aurele', 'mira-studio', 'form-foundation', 'mediwell-clinic', 'cedar-co', 'cedar-co-', 'northstar-advisory', 'saffron-table', 'atelier-mira', 'builtline-studio', 'harbor-health', 'hearth-key', 'fieldnote-partners'];
 
 async function initializeDatabase() {
   const adminConnection = await mysql.createConnection(dbConfig);
