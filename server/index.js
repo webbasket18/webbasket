@@ -270,15 +270,40 @@ app.use(express.json({ limit: '2mb' }));
 const templateUpload = multer({ storage: multer.memoryStorage(), limits: { files: 300, fileSize: 15 * 1024 * 1024, fieldSize: 250 * 1024 } });
 app.use('/template-assets', express.static(path.join(storageDir, 'templates'), { extensions: ['html'] }));
 
+async function readStoredTemplateAsset(slug, relativePath) {
+  const safeSlug = String(slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const safePath = sanitizeTemplatePath(relativePath);
+  if (!safeSlug || !safePath) return null;
+  const templateDirectory = path.join(storageDir, 'templates', safeSlug);
+  const diskPath = path.join(templateDirectory, safePath);
+  if (diskPath.startsWith(`${templateDirectory}${path.sep}`)) {
+    try { return { content: await fs.readFile(diskPath), mimeType: null }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  const [[asset]] = await pool.query('SELECT content, mime_type AS mimeType FROM template_assets ta JOIN templates t ON t.id = ta.template_id WHERE t.slug = ? AND ta.asset_path = ? LIMIT 1', [safeSlug, safePath]);
+  return asset || null;
+}
+
+app.get('/template-assets/:slug/*', async (req, res) => {
+  try {
+    const asset = await readStoredTemplateAsset(req.params.slug, req.params[0]);
+    if (!asset) return res.status(404).send('Template asset not found.');
+    if (asset.mimeType) res.type(asset.mimeType);
+    res.set('Cache-Control', 'public, max-age=300').send(asset.content);
+  } catch (error) {
+    console.error('Template asset error:', error.message);
+    res.status(500).send('Could not load template asset.');
+  }
+});
+
 app.get('/api/v1/template-pages/:slug', async (req, res) => {
   const slug = String(req.params.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
   const requestedPath = sanitizeTemplatePath(String(req.query.path || 'index.html')) || 'index.html';
   if (!slug || !requestedPath.toLowerCase().endsWith('.html')) return res.status(400).send('Invalid template page.');
   const templateDirectory = path.join(storageDir, 'templates', slug);
-  const pageFile = path.join(templateDirectory, requestedPath);
-  if (!pageFile.startsWith(`${templateDirectory}${path.sep}`)) return res.status(400).send('Invalid template page path.');
   try {
-    const html = await fs.readFile(pageFile, 'utf8');
+    const storedPage = await readStoredTemplateAsset(slug, requestedPath);
+    if (!storedPage) return res.status(404).send('Template page not found.');
+    const html = storedPage.content.toString('utf8');
     const pageDirectory = path.posix.dirname(requestedPath) === '.' ? '' : `${path.posix.dirname(requestedPath)}/`;
     const assetBase = `/template-assets/${slug}/${pageDirectory}`;
     const pageEndpoint = (pagePath, hash = '') => `/api/v1/template-pages/${slug}?path=${encodeURIComponent(pagePath)}${hash ? `#${hash}` : ''}`;
@@ -624,12 +649,19 @@ app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('f
   const templatePath = `/template-assets/${slug}/${entryPath}`;
   const values = [category.id, name, description, Math.max(1, Number(pages) || 1), type === 'Dynamic' ? 'Dynamic' : 'Static', Math.max(0, Number(price) || 0), ['true', '1', 'on'].includes(String(featured).toLowerCase()), thumbnailUrl, 'custom', JSON.stringify(['Uploaded HTML template', 'Customer form fields', 'Live preview']), templatePath, JSON.stringify(parsedFormSchema)];
   const templateId = existing?.id;
-  if (templateId) await pool.query('UPDATE templates SET category_id = ?, name = ?, description = ?, pages = ?, type = ?, price = ?, featured = ?, demo = TRUE, thumbnail_url = ?, palette = ?, features = ?, template_path = ?, form_schema = ? WHERE id = ?', [...values, templateId]);
+  let savedTemplateId = templateId;
+  if (savedTemplateId) await pool.query('UPDATE templates SET category_id = ?, name = ?, description = ?, pages = ?, type = ?, price = ?, featured = ?, demo = TRUE, thumbnail_url = ?, palette = ?, features = ?, template_path = ?, form_schema = ? WHERE id = ?', [...values, savedTemplateId]);
   else {
     const [result] = await pool.query('INSERT INTO templates (category_id, name, slug, description, pages, type, price, featured, demo, thumbnail_url, palette, features, template_path, form_schema) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?)', [category.id, name, slug, ...values.slice(2)]);
-    return res.status(201).json({ id: result.insertId, name, slug, category_name: category.name, category_slug: category.slug, template_path: templatePath, preview_url: templatePath, form_schema: parsedFormSchema, thumbnail_url: thumbnailUrl });
+    savedTemplateId = result.insertId;
   }
-  res.json({ id: templateId, name, slug, category_name: category.name, category_slug: category.slug, template_path: templatePath, preview_url: templatePath, form_schema: parsedFormSchema, thumbnail_url: thumbnailUrl, replaced: true });
+  await pool.query('DELETE FROM template_assets WHERE template_id = ?', [savedTemplateId]);
+  for (const [index, file] of req.files.entries()) {
+    const assetPath = relativePaths[index];
+    if (!assetPath || assetPath.length > 500) continue;
+    await pool.query('INSERT INTO template_assets (template_id, asset_path, mime_type, content, size_bytes) VALUES (?, ?, ?, ?, ?)', [savedTemplateId, assetPath, file.mimetype || 'application/octet-stream', file.buffer, file.size || file.buffer.length]);
+  }
+  res.status(existing ? 200 : 201).json({ id: savedTemplateId, name, slug, category_name: category.name, category_slug: category.slug, template_path: templatePath, preview_url: templatePath, form_schema: parsedFormSchema, thumbnail_url: thumbnailUrl, replaced: Boolean(existing) });
 });
 
 app.patch('/api/v1/admin/templates/:id', requireAdmin, async (req, res) => {

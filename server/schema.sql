@@ -36,6 +36,18 @@ CREATE TABLE IF NOT EXISTS templates (
   CONSTRAINT fk_template_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
+CREATE TABLE IF NOT EXISTS template_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  template_id INT NOT NULL,
+  asset_path VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(120) NOT NULL DEFAULT 'application/octet-stream',
+  content LONGBLOB NOT NULL,
+  size_bytes BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_template_asset_path (template_id, asset_path),
+  CONSTRAINT fk_template_asset_template FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS enquiries (
   id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
