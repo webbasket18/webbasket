@@ -154,6 +154,12 @@ function SEOManager({ templates }) {
   return null;
 }
 
+function openServiceWhatsApp(serviceName) {
+  const message = `Hi WebBasket, I would like to know more about ${serviceName}.`;
+  const href = `https://wa.me/918446079635?text=${encodeURIComponent(message)}`;
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
 function App() {
   const [templates, setTemplates] = useState(demoTemplates);
   const [categoriesData, setCategoriesData] = useState(categories);
@@ -166,7 +172,7 @@ function App() {
       .catch(() => undefined);
   }, []);
 
-  const showToast = (message) => { setToast(message); window.setTimeout(() => setToast(''), 3400); };
+  const showToast = (message) => { if (message.endsWith(' enquiry started')) return openServiceWhatsApp(message.replace(' enquiry started', '')); setToast(message); window.setTimeout(() => setToast(''), 3400); };
   return <>
     <SiteChrome onAccount={() => setAccountOpen(true)} />
     <SEOManager templates={templates} />
