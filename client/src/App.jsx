@@ -1118,7 +1118,8 @@ function UploadedTemplatePreview({ template, customFields = {}, businessName, wh
       const baseHref = new URL('./', absoluteTemplateUrl).href;
       const values = { businessName, ...customFields };
       const withValues = html.replace(/\{\{\s*([\w.-]+)\s*\}\}|\[\[\s*([\w.-]+)\s*\]\]/g, (_match, first, second) => escapeTemplateValue(values[first || second] || ''));
-      const withBase = /<head[\s>]/i.test(withValues) ? withValues.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${withValues}`;
+      const rebasedRootAssets = withValues.replace(/(\b(?:src|href)=['"])\/(?!\/)/gi, `$1${baseHref}`);
+      const withBase = /<head[\s>]/i.test(rebasedRootAssets) ? rebasedRootAssets.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${rebasedRootAssets}`;
       setSource(withBase);
     }).catch((fetchError) => { if (active) setError(fetchError.message || 'Could not load the uploaded template.'); });
     return () => { active = false; };
