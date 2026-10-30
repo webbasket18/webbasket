@@ -100,7 +100,7 @@ function makeZip(entries) {
 }
 
 async function createSourceArtifact(orderId, userId) {
-  const [[order]] = await pool.query('SELECT o.*, p.project_name, p.business_name, p.content, t.name AS template_name, t.template_path FROM orders o JOIN website_projects p ON p.id = o.project_id JOIN templates t ON t.id = p.template_id WHERE o.id = ? AND o.user_id = ? AND o.status = "paid"', [orderId, userId]);
+  const [[order]] = await pool.query('SELECT o.*, p.project_name, p.business_name, p.content, t.name AS template_name, t.template_path, c.name AS category_name, c.slug AS category_slug FROM orders o JOIN website_projects p ON p.id = o.project_id JOIN templates t ON t.id = p.template_id JOIN categories c ON c.id = t.category_id WHERE o.id = ? AND o.user_id = ? AND o.status = "paid"', [orderId, userId]);
   if (!order) return null;
   const content = typeof order.content === 'string' ? JSON.parse(order.content) : order.content || {};
   const safeName = (order.business_name || order.project_name || 'web-guruji-site').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -110,6 +110,7 @@ async function createSourceArtifact(orderId, userId) {
     { name: 'site/styles.css', data: `:root{font-family:Inter,Arial,sans-serif;color:#14213d;background:#f8fafc}body{margin:0}.hero{max-width:760px;margin:18vh auto;padding:48px;background:#fff;border-radius:22px;box-shadow:0 20px 60px #14213d18}small{letter-spacing:.15em;color:#d97010}h1{font-size:clamp(40px,8vw,82px);line-height:.95;margin:18px 0}p{font-size:20px;color:#667085}.hero section{margin:30px 0;line-height:1.7}.hero a{display:inline-block;padding:13px 18px;color:#fff;background:#f28c28;border-radius:8px;text-decoration:none}` },
     { name: 'content.json', data: JSON.stringify({ businessName: order.business_name, content }, null, 2) }
   ];
+  files[1].data = injectCustomerSeo(files[1].data, order, content, 'index.html');
   const uploadedMatch = String(order.template_path || '').match(/^\/template-assets\/([^/]+)\//);
   if (uploadedMatch) {
     const uploadedRoot = path.join(storageDir, 'templates', uploadedMatch[1]);
@@ -120,7 +121,11 @@ async function createSourceArtifact(orderId, userId) {
         const entryRelative = path.join(relative, entry.name);
         const entryPath = path.join(directory, entry.name);
         if (entry.isDirectory()) await collectFiles(entryPath, entryRelative);
-        else uploadedFiles.push({ name: `site/${entryRelative.replace(/\\/g, '/')}`, data: await fs.readFile(entryPath) });
+        else {
+          const fileData = await fs.readFile(entryPath);
+          const normalizedRelative = entryRelative.replace(/\\/g, '/');
+          uploadedFiles.push({ name: `site/${normalizedRelative}`, data: /\.html?$/i.test(entry.name) ? injectCustomerSeo(fileData.toString('utf8'), order, content, normalizedRelative) : fileData });
+        }
       }
     };
     try { await collectFiles(uploadedRoot); if (uploadedFiles.length) files.splice(1, files.length - 1, ...uploadedFiles); } catch { /* keep the generated fallback if the uploaded folder is unavailable */ }
@@ -137,6 +142,37 @@ async function createSourceArtifact(orderId, userId) {
 }
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
+
+function customerPageLabel(pagePath = 'index.html') {
+  const base = path.posix.basename(String(pagePath), path.posix.extname(String(pagePath)));
+  if (!base || base.toLowerCase() === 'index') return 'Home';
+  return base.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function customerSeoData(project, content = {}, pagePath = 'index.html') {
+  const businessName = String(project.business_name || project.project_name || 'Your Business').trim();
+  const category = String(project.category_name || 'Business').trim();
+  const city = String(content.city || '').trim();
+  const pageLabel = customerPageLabel(pagePath);
+  const location = city ? ` in ${city}` : '';
+  const title = pageLabel === 'Home' ? `${businessName} | ${category}${location}` : `${pageLabel} | ${businessName}${location}`;
+  const descriptionSource = String(content.about || content.tagline || `${businessName} offers trusted ${category.toLowerCase()} services${location}.`).replace(/\s+/g, ' ').trim();
+  const description = descriptionSource.length > 158 ? `${descriptionSource.slice(0, 155).replace(/\s+\S*$/, '')}...` : descriptionSource;
+  const keywords = [...new Set([businessName, category, city, pageLabel, `${category} website`, `${category} services${location}`, String(content.ctaLabel || '').trim()].filter(Boolean))].join(', ');
+  const schema = { '@context': 'https://schema.org', '@type': 'LocalBusiness', name: businessName, description, ...(content.phone ? { telephone: String(content.phone) } : {}), ...(content.email ? { email: String(content.email) } : {}), ...(city || content.address ? { address: { '@type': 'PostalAddress', ...(content.address ? { streetAddress: String(content.address) } : {}), ...(city ? { addressLocality: city } : {}), addressCountry: 'IN' } } : {}) };
+  return { title, description, keywords, schema };
+}
+
+function injectCustomerSeo(html, project, content, pagePath) {
+  const seo = customerSeoData(project, content, pagePath);
+  const keys = ['description', 'keywords', 'robots', 'og:title', 'og:description', 'og:type', 'twitter:title', 'twitter:description'];
+  const keyPattern = keys.join('|');
+  let output = String(html).replace(new RegExp(`<meta\\s+[^>]*?(?:name|property)=["'](?:${keyPattern})["'][^>]*>`, 'gi'), '');
+  const titleTag = `<title>${escapeHtml(seo.title)}</title>`;
+  output = /<title[\s>]/i.test(output) ? output.replace(/<title[^>]*>[\s\S]*?<\/title>/i, titleTag) : output.replace(/<head([^>]*)>/i, `<head$1>${titleTag}`);
+  const tags = `<meta name="description" content="${escapeHtml(seo.description)}"><meta name="keywords" content="${escapeHtml(seo.keywords)}"><meta name="robots" content="index, follow, max-image-preview:large"><meta property="og:type" content="website"><meta property="og:title" content="${escapeHtml(seo.title)}"><meta property="og:description" content="${escapeHtml(seo.description)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(seo.title)}"><meta name="twitter:description" content="${escapeHtml(seo.description)}"><script id="webbasket-seo-data" type="application/ld+json">${JSON.stringify(seo.schema).replace(/</g, '\\u003c')}</script>`;
+  return /<\/head>/i.test(output) ? output.replace(/<\/head>/i, `${tags}</head>`) : `<head>${titleTag}${tags}</head>${output}`;
+}
 
 function renderProjectPreview(project) {
   const content = typeof project.content === 'string' ? JSON.parse(project.content) : project.content || {};
@@ -700,6 +736,18 @@ app.get('/api/v1/admin/overview', requireAdmin, async (_req, res) => {
   const [[projects]] = await pool.query('SELECT COUNT(*) AS total FROM website_projects');
   const [[enquiries]] = await pool.query('SELECT COUNT(*) AS total FROM enquiries');
   res.json({ customers: customers.total, templates: templates.total, projects: projects.total, enquiries: enquiries.total });
+});
+
+function escapeXml(value = '') { return String(value).replace(/[<>&'\"]/g, (character) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[character])); }
+
+app.get('/sitemap.xml', async (_req, res, next) => {
+  try {
+    const [templates] = await pool.query('SELECT id FROM templates WHERE demo = TRUE ORDER BY id');
+    const baseUrls = ['/', '/templates', '/pricing', '/services'];
+    const templateUrls = templates.map((template) => `/template/${template.id}`);
+    const urls = [...baseUrls, ...templateUrls].map((url) => `<url><loc>${escapeXml(`https://webbasket.org${url}`)}</loc><changefreq>${url.startsWith('/template/') ? 'monthly' : 'weekly'}</changefreq><priority>${url === '/' ? '1.0' : url === '/templates' ? '0.9' : url.startsWith('/template/') ? '0.7' : '0.6'}</priority></url>`).join('');
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
+  } catch (error) { next(error); }
 });
 
 const clientDist = path.resolve(__dirname, '../client/dist');
