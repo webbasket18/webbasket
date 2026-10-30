@@ -270,6 +270,31 @@ app.use(express.json({ limit: '2mb' }));
 const templateUpload = multer({ storage: multer.memoryStorage(), limits: { files: 300, fileSize: 15 * 1024 * 1024, fieldSize: 250 * 1024 } });
 app.use('/template-assets', express.static(path.join(storageDir, 'templates'), { extensions: ['html'] }));
 
+app.get('/api/v1/template-pages/:slug', async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const requestedPath = sanitizeTemplatePath(String(req.query.path || 'index.html')) || 'index.html';
+  if (!slug || !requestedPath.toLowerCase().endsWith('.html')) return res.status(400).send('Invalid template page.');
+  const templateDirectory = path.join(storageDir, 'templates', slug);
+  const pageFile = path.join(templateDirectory, requestedPath);
+  if (!pageFile.startsWith(`${templateDirectory}${path.sep}`)) return res.status(400).send('Invalid template page path.');
+  try {
+    const html = await fs.readFile(pageFile, 'utf8');
+    const pageDirectory = path.posix.dirname(requestedPath) === '.' ? '' : `${path.posix.dirname(requestedPath)}/`;
+    const assetBase = `/template-assets/${slug}/${pageDirectory}`;
+    const pageEndpoint = (pagePath, hash = '') => `/api/v1/template-pages/${slug}?path=${encodeURIComponent(pagePath)}${hash ? `#${hash}` : ''}`;
+    const rewrittenLinks = html.replace(/(\bhref\s*=\s*["'])(?!https?:\/\/|mailto:|tel:|javascript:|#)([^"']+\.html(?:#[^"']*)?)(["'])/gi, (_match, prefix, value, suffix) => {
+      const [relativePath, hash = ''] = value.split('#');
+      const resolvedPath = path.posix.normalize(path.posix.join(path.posix.dirname(requestedPath), relativePath)).replace(/^\.\//, '');
+      return `${prefix}${pageEndpoint(resolvedPath, hash)}${suffix}`;
+    });
+    const withBase = /<head[\s>]/i.test(rewrittenLinks) ? rewrittenLinks.replace(/<head([^>]*)>/i, `<head$1><base href="${assetBase}">`) : `<base href="${assetBase}">${rewrittenLinks}`;
+    res.type('html').set('Cache-Control', 'public, max-age=300').send(withBase);
+  } catch (error) {
+    if (error.code === 'ENOENT') return res.status(404).send('Template page not found.');
+    res.status(500).send('Could not load template page.');
+  }
+});
+
 app.get('/api/v1/health', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ ok: true, database }); }
   catch { res.status(503).json({ ok: false, message: 'Database unavailable' }); }

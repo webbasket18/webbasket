@@ -1119,7 +1119,12 @@ function UploadedTemplatePreview({ template, customFields = {}, businessName, wh
       const values = { businessName, ...customFields };
       const withValues = html.replace(/\{\{\s*([\w.-]+)\s*\}\}|\[\[\s*([\w.-]+)\s*\]\]/g, (_match, first, second) => escapeTemplateValue(values[first || second] || ''));
       const rebasedRootAssets = withValues.replace(/(\b(?:src|href)=['"])\/(?!\/)/gi, `$1${baseHref}`);
-      const withBase = /<head[\s>]/i.test(rebasedRootAssets) ? rebasedRootAssets.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${rebasedRootAssets}`;
+      const pageEndpoint = (pagePath, hash = '') => `${API}/template-pages/${encodeURIComponent(template.slug)}?path=${encodeURIComponent(pagePath)}${hash ? `#${hash}` : ''}`;
+      const routedPages = rebasedRootAssets.replace(/(\bhref\s*=\s*["'])(?!https?:\/\/|mailto:|tel:|javascript:|#)([^"']+\.html(?:#[^"']*)?)(["'])/gi, (_match, prefix, value, suffix) => {
+        const [pagePath, hash = ''] = value.split('#');
+        return `${prefix}${pageEndpoint(pagePath, hash)}${suffix}`;
+      });
+      const withBase = /<head[\s>]/i.test(routedPages) ? routedPages.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${routedPages}`;
       const fallbackScript = `<script>(function(){var fallback='https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80';function fix(image){if(!image||image.dataset.wbFallback)return;image.dataset.wbFallback='1';image.src=fallback;}document.addEventListener('error',function(event){if(event.target&&event.target.tagName==='IMG')fix(event.target);},true);})();<\/script>`;
       setSource(withBase.replace(/<\/body>/i, `${fallbackScript}</body>`));
     }).catch((fetchError) => { if (active) setError(fetchError.message || 'Could not load the uploaded template.'); });
