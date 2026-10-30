@@ -17,7 +17,9 @@ import {
   RotateCcw, Star, Store, Tablet, WandSparkles, X, Zap
 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
+const configuredApiUrl = String(import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+const isLocalApiUrl = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(configuredApiUrl);
+const API = configuredApiUrl && (!isLocalApiUrl || import.meta.env.DEV) ? configuredApiUrl : import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '/api/v1';
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '918446079635';
 
 const demoTemplates = [
