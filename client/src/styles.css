@@ -806,12 +806,15 @@ h1, h2, h3 { font-family: Manrope, sans-serif; letter-spacing: -.04em; line-heig
 }
 @media (max-width:760px) {
   .full-preview-frame { height: 600px; }
+  .full-preview-frame.viewport-mobile .preview-whatsapp-float { right: 10px; }
 }
 
 /* The builder can show a mobile viewport inside a desktop browser, so the
    browser media query alone is not enough for the preview WhatsApp control. */
 .full-preview-frame.viewport-mobile .preview-whatsapp-float {
-  right: 12px;
+  /* Keep the launcher inside the centered mobile website, not in the
+     surrounding desktop preview panel. The mobile canvas is 390px wide. */
+  right: calc(50% - 195px + 10px);
   bottom: 12px;
   width: 44px;
   min-width: 44px;
