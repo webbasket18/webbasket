@@ -868,6 +868,13 @@ h1, h2, h3 { font-family: Manrope, sans-serif; letter-spacing: -.04em; line-heig
 }
 .whatsapp-float .whatsapp-real-icon { width: 48px !important; height: 48px !important; }
 .whatsapp-float .whatsapp-pulse { top: -1px; left: -1px; }
+.preview-package-controls { display: grid; grid-template-columns: minmax(170px,1fr) 240px auto; align-items: center; gap: 14px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid #d5e2f4; border-radius: 12px; background: #fff; box-shadow: 0 8px 20px rgba(22,61,116,.06); }
+.preview-package-controls > div { display: grid; gap: 3px; }
+.preview-package-controls b { color: #123d83; font-size: 12px; }
+.preview-package-controls small { color: #71819a; font-size: 10px; }
+.preview-package-controls select { width: 100%; padding: 10px 11px; border: 1px solid #cbdcf3; border-radius: 8px; color: #123d83; background: #fff; font-size: 11px; font-weight: 700; }
+.preview-package-controls a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; color: #f27619; font-size: 10px; font-weight: 800; text-align: right; }
+@media (max-width:760px) { .preview-package-controls { grid-template-columns: 1fr; }.preview-package-controls a { justify-content: flex-start; text-align: left; } }
 
 /* Uploaded HTML template workflow */
 .uploaded-template-fields { margin: 0 0 20px; padding: 18px; border: 1px solid #d5e2f4; border-radius: 14px; background: #f7faff; }
