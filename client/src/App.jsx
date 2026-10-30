@@ -784,6 +784,7 @@ export default App;
 
 function WhatsAppFloat() {
   const location = useLocation();
+  if (location.pathname.startsWith('/builder')) return null;
   const pageMessage = location.pathname.startsWith('/builder')
     ? 'Hi Web Guruji, I am customizing a website and need help choosing the right package.'
     : location.pathname === '/pricing'
@@ -807,9 +808,27 @@ function WhatsAppIcon({ size = 19 }) {
 }
 
 function PreviewWhatsAppFloat({ number }) {
+  const launcherRef = useRef(null);
   const normalized = normalizeWhatsAppNumber(number);
   const href = `https://wa.me/${normalized}?text=${encodeURIComponent('Hi, I would like to know more about this business.')}`;
-  return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp" title="Open WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={31} /></a>;
+  useEffect(() => {
+    const launcher = launcherRef.current;
+    const frame = launcher?.closest('.full-preview-frame');
+    if (!launcher || !frame) return undefined;
+    const updatePosition = () => {
+      const height = launcher.offsetHeight || 52;
+      launcher.style.top = `${frame.scrollTop + frame.clientHeight - height - 16}px`;
+      launcher.style.bottom = 'auto';
+    };
+    updatePosition();
+    frame.addEventListener('scroll', updatePosition, { passive: true });
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      frame.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, []);
+  return <a ref={launcherRef} className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp" title="Open WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={31} /></a>;
 }
 
 function submitTemplateFormToWhatsApp(event, { number, businessName, subject }) {
