@@ -665,8 +665,22 @@ app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('f
 });
 
 app.patch('/api/v1/admin/templates/:id', requireAdmin, async (req, res) => {
-  const { name, description, price, featured, pages, type, published = true } = req.body || {};
-  await pool.query('UPDATE templates SET name = COALESCE(?, name), description = COALESCE(?, description), price = COALESCE(?, price), featured = COALESCE(?, featured), pages = COALESCE(?, pages), type = COALESCE(?, type), demo = ? WHERE id = ?', [name, description, price, featured, pages, type, Boolean(!published), req.params.id]);
+  const { name, description, price, featured, pages, type, categoryId, published = true } = req.body || {};
+  if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+    const [[category]] = await pool.query('SELECT id FROM categories WHERE id = ?', [categoryId]);
+    if (!category) return res.status(400).json({ message: 'Selected category was not found.' });
+  }
+  await pool.query('UPDATE templates SET category_id = COALESCE(?, category_id), name = COALESCE(?, name), description = COALESCE(?, description), price = COALESCE(?, price), featured = COALESCE(?, featured), pages = COALESCE(?, pages), type = COALESCE(?, type), demo = ? WHERE id = ?', [categoryId || null, name, description, price, featured, pages, type, Boolean(!published), req.params.id]);
+  res.json({ ok: true });
+});
+
+app.delete('/api/v1/admin/templates/:id', requireAdmin, async (req, res) => {
+  const [[template]] = await pool.query('SELECT id, slug FROM templates WHERE id = ?', [req.params.id]);
+  if (!template) return res.status(404).json({ message: 'Template not found.' });
+  const [[usage]] = await pool.query('SELECT COUNT(*) AS total FROM website_projects WHERE template_id = ?', [template.id]);
+  if (Number(usage.total) > 0) return res.status(409).json({ message: 'This template is used by an existing customer project, so it cannot be deleted.' });
+  await pool.query('DELETE FROM templates WHERE id = ?', [template.id]);
+  await fs.rm(path.join(storageDir, 'templates', template.slug), { recursive: true, force: true });
   res.json({ ok: true });
 });
 
