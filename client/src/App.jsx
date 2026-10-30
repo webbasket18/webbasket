@@ -102,6 +102,10 @@ function SEOManager({ templates }) {
       title: 'Affordable Website Design Packages in India | WebBasket',
       description: 'Compare transparent WebBasket website packages starting at ₹1,000, with live preview, responsive layouts and source-code delivery.',
       keywords: 'affordable website design India, website price India, one page website price, website packages for small business'
+    } : path === '/services' ? {
+      title: 'Website Services for Small Businesses in India | WebBasket',
+      description: 'Explore WebBasket website services including hosting, domain setup, admin panels, SEO setup and monthly maintenance for Indian businesses.',
+      keywords: 'website services India, website hosting setup, admin panel development, SEO services for small business, website maintenance India'
     } : template ? {
       title: `${template.name} | ${template.category_name} Website Template | WebBasket`,
       description: `${template.description} Customize this responsive ${template.category_name.toLowerCase()} website template with your business content and preview it live.`,
@@ -180,6 +184,7 @@ function App() {
       <Route path="/" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
       <Route path="/templates" element={<Marketplace templates={templates} categories={categoriesData} />} />
       <Route path="/pricing" element={<Pricing onToast={showToast} />} />
+      <Route path="/services" element={<ServicesPage />} />
       <Route path="/builder/:templateId" element={<BuilderV4 templates={templates} onToast={showToast} />} />
       <Route path="/dashboard" element={<DashboardV2 />} />
       <Route path="/admin" element={<AdminV2 />} />
@@ -207,7 +212,7 @@ function SiteChrome({ onAccount }) {
           <a href="/#categories" onClick={() => setMobileOpen(false)}>Categories</a>
           <button className={location.pathname === '/pricing' ? 'active' : ''} onClick={() => go('/pricing')}>Pricing</button>
           <a href="/#how-it-works" onClick={() => setMobileOpen(false)}>How it works</a>
-          <a href="/#services" onClick={() => setMobileOpen(false)}>Services</a>
+          <a href="/services" onClick={() => setMobileOpen(false)}>Services</a>
           <button className="mobile-login" onClick={() => { onAccount(); setMobileOpen(false); }}>Log in</button>
         </nav>
         <div className="nav-actions"><button className="login-link" onClick={onAccount}>Log in</button><button className="button button-dark button-small" onClick={() => go('/templates')}>Build my website <ArrowRight size={15} /></button></div>
@@ -858,6 +863,16 @@ function MaisonAurelePreview(props) {
 function FullNav({ businessName, ctaLabel, logo }) { return <div className="full-site-nav">{logo ? <img className="preview-logo" src={logo} alt="Logo" /> : <b>{businessName.toUpperCase()}</b>}<div><span>Home</span><span>About</span><span>Services</span><span>Contact</span><button>{ctaLabel}</button></div></div>; }
 
 function AboutPreview({ businessName, about, city, images, ctaLabel }) { return <><FullNav businessName={businessName} ctaLabel={ctaLabel} logo={images[0]} /><section className="about-preview-hero"><small>ABOUT {businessName.toUpperCase()}</small><h2>A business with<br /><em>a reason to exist.</em></h2><p>{about}</p></section><section className="full-section about-story"><small>01 · OUR STORY</small><h3>Built around the people<br />we are here to serve.</h3><p>{about}</p></section><section className="full-section about-values"><small>02 · OUR VALUES</small><div className="about-value-grid"><div><b>01</b><h4>Care in the details</h4><p>Every interaction should feel considered.</p></div><div><b>02</b><h4>Useful by default</h4><p>Make it simple for people to say yes.</p></div><div><b>03</b><h4>Always human</h4><p>Technology should keep the relationship warm.</p></div></div></section><section className="full-section about-image"><img src={images[1]} alt="Business story" /><div><small>03 · THE PLACE</small><h3>A space for the next chapter.</h3><p>{city || 'Your city'} and the people who make it feel like home.</p></div></section><section className="full-section about-team"><small>04 · THE PEOPLE</small><h3>Small team.<br /><em>Big attention.</em></h3><div className="team-lines"><span>Founder / your name</span><span>Team / your people</span><span>Craft / your speciality</span></div></section><section className="full-section about-cta"><small>05 · COME SAY HELLO</small><h3>Ready to make something<br />worth remembering?</h3><button>{ctaLabel}</button></section><footer className="preview-site-footer"><b>{businessName}</b><span>{city || 'Your city'} · Full About page</span></footer></>; }
+
+function ServicesPage() {
+  const services = [
+    { icon: Rocket, label: '01 · LAUNCH', title: 'Hosting & domain setup', copy: 'Connect your domain, hosting and production deployment so your website is live and ready for customers.', price: 'Quotation' },
+    { icon: PanelLeft, label: '02 · CONTROL', title: 'Independent admin panel', copy: 'Manage enquiries, products, bookings or business content from a simple admin workspace after launch.', price: 'Quotation' },
+    { icon: BarChart3, label: '03 · DISCOVERY', title: 'SEO foundation', copy: 'Get metadata, sitemap, indexing setup, analytics and a practical launch checklist for search visibility.', price: 'From ₹2,500' },
+    { icon: LifeBuoy, label: '04 · CARE', title: 'Monthly maintenance', copy: 'Keep your website secure, backed up, updated and supported with regular content improvements.', price: 'Recurring' }
+  ];
+  return <main className="services-page section-pad"><div className="container"><div className="services-page-hero"><div><div className="eyebrow"><span className="eyebrow-dot" /> Website services for growing businesses</div><h1>Bring in help<br /><em>when you need it.</em></h1><p>Start with a strong website and add the right support as your business grows. Every service is scoped clearly and connected to your next practical step.</p><button className="button button-orange" onClick={() => openServiceWhatsApp('website services')}>Talk to us on WhatsApp <ArrowRight size={16} /></button></div><div className="services-page-hero-card"><span>WEBBASKET / SERVICES</span><strong>Good websites<br /><em>keep moving.</em></strong><div><b>4</b><small>ways we can help<br />after launch</small></div></div></div><div className="services-page-list">{services.map(({ icon: Icon, label, title, copy, price }) => <article className="service-page-row" key={title}><div className="service-page-icon"><Icon size={22} /></div><div className="service-page-copy"><small>{label}</small><h2>{title}</h2><p>{copy}</p></div><strong className="service-page-price">{price}</strong><button className="text-link service-page-action" onClick={() => openServiceWhatsApp(title)}>Ask about it <ArrowUpRight size={15} /></button></article>)}</div><section className="services-page-note"><div><div className="eyebrow eyebrow-light">A clear next step</div><h2>Not sure what you need yet?</h2><p>Tell us about your business and we will recommend the right service for your website.</p></div><button className="button button-orange" onClick={() => openServiceWhatsApp('a website service recommendation')}>Get a recommendation <ArrowRight size={15} /></button></section></div></main>;
+}
 
 function AdminV2() {
   const [overview, setOverview] = useState({ customers: 0, templates: 0, projects: 0, enquiries: 0 });
