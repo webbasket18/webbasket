@@ -417,12 +417,18 @@ function MotionPage({ children }) {
     const root = pageRef.current;
     if (!root) return undefined;
     const selector = '.section-pad, .premium-banner-section, .hero-trust-strip, .marketplace-hero, .marketplace-toolbar, .marketplace-layout, .category-card, .template-card, .step, .service-card, .plans-grid > *, .services-page-hero, .service-page-row, .services-page-note, .builder-workspace, .app-shell, .admin-template-upload, .admin-table-panel, .dashboard-panel';
+    const revealAll = () => root.querySelectorAll('.scroll-reveal').forEach((element) => element.classList.add('is-visible'));
+    if (!('IntersectionObserver' in window)) {
+      revealAll();
+      return undefined;
+    }
     const revealObserver = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); } }), { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
     const prepare = () => root.querySelectorAll(selector).forEach((element) => { if (!element.classList.contains('scroll-reveal')) { element.classList.add('scroll-reveal'); revealObserver.observe(element); } });
     prepare();
     const mutationObserver = new MutationObserver(prepare);
     mutationObserver.observe(root, { childList: true, subtree: true });
-    return () => { mutationObserver.disconnect(); revealObserver.disconnect(); };
+    const fallbackTimer = window.setTimeout(revealAll, 1200);
+    return () => { window.clearTimeout(fallbackTimer); mutationObserver.disconnect(); revealObserver.disconnect(); };
   }, []);
   return <motion.div ref={pageRef} className="route-motion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .42, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div>;
 }
