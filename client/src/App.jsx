@@ -1111,10 +1111,11 @@ function UploadedTemplatePreview({ template, customFields = {}, businessName, wh
   useEffect(() => {
     let active = true;
     if (!templateUrl) return undefined;
+    const absoluteTemplateUrl = new URL(templateUrl, window.location.origin).href;
     setError('');
-    fetch(templateUrl).then((response) => response.ok ? response.text() : Promise.reject(new Error('Could not load template preview.'))).then((html) => {
+    fetch(absoluteTemplateUrl).then((response) => response.ok ? response.text() : Promise.reject(new Error('Could not load template preview.'))).then((html) => {
       if (!active) return;
-      const baseHref = new URL('./', templateUrl).href;
+      const baseHref = new URL('./', absoluteTemplateUrl).href;
       const values = { businessName, ...customFields };
       const withValues = html.replace(/\{\{\s*([\w.-]+)\s*\}\}|\[\[\s*([\w.-]+)\s*\]\]/g, (_match, first, second) => escapeTemplateValue(values[first || second] || ''));
       const withBase = /<head[\s>]/i.test(withValues) ? withValues.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${withValues}`;
