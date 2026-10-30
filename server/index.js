@@ -7,6 +7,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Razorpay from 'razorpay';
+import multer from 'multer';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -62,8 +63,13 @@ async function initializeDatabase() {
   await fs.mkdir(storageDir, { recursive: true });
   await fs.mkdir(path.join(storageDir, 'artifacts'), { recursive: true });
   await fs.mkdir(path.join(storageDir, 'uploads'), { recursive: true });
+  await fs.mkdir(path.join(storageDir, 'templates'), { recursive: true });
   const schema = await fs.readFile(path.join(__dirname, 'schema.sql'), 'utf8');
   for (const statement of schema.split(';').map((part) => part.trim()).filter(Boolean)) await pool.query(statement);
+  const [templateColumns] = await pool.query('SHOW COLUMNS FROM templates');
+  const existingTemplateColumns = new Set(templateColumns.map((column) => column.Field));
+  if (!existingTemplateColumns.has('template_path')) await pool.query('ALTER TABLE templates ADD COLUMN template_path VARCHAR(500) NULL');
+  if (!existingTemplateColumns.has('form_schema')) await pool.query('ALTER TABLE templates ADD COLUMN form_schema JSON NULL');
   await seedDatabase();
 }
 
@@ -94,7 +100,7 @@ function makeZip(entries) {
 }
 
 async function createSourceArtifact(orderId, userId) {
-  const [[order]] = await pool.query('SELECT o.*, p.project_name, p.business_name, p.content, t.name AS template_name FROM orders o JOIN website_projects p ON p.id = o.project_id JOIN templates t ON t.id = p.template_id WHERE o.id = ? AND o.user_id = ? AND o.status = "paid"', [orderId, userId]);
+  const [[order]] = await pool.query('SELECT o.*, p.project_name, p.business_name, p.content, t.name AS template_name, t.template_path FROM orders o JOIN website_projects p ON p.id = o.project_id JOIN templates t ON t.id = p.template_id WHERE o.id = ? AND o.user_id = ? AND o.status = "paid"', [orderId, userId]);
   if (!order) return null;
   const content = typeof order.content === 'string' ? JSON.parse(order.content) : order.content || {};
   const safeName = (order.business_name || order.project_name || 'web-guruji-site').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -104,6 +110,21 @@ async function createSourceArtifact(orderId, userId) {
     { name: 'site/styles.css', data: `:root{font-family:Inter,Arial,sans-serif;color:#14213d;background:#f8fafc}body{margin:0}.hero{max-width:760px;margin:18vh auto;padding:48px;background:#fff;border-radius:22px;box-shadow:0 20px 60px #14213d18}small{letter-spacing:.15em;color:#d97010}h1{font-size:clamp(40px,8vw,82px);line-height:.95;margin:18px 0}p{font-size:20px;color:#667085}.hero section{margin:30px 0;line-height:1.7}.hero a{display:inline-block;padding:13px 18px;color:#fff;background:#f28c28;border-radius:8px;text-decoration:none}` },
     { name: 'content.json', data: JSON.stringify({ businessName: order.business_name, content }, null, 2) }
   ];
+  const uploadedMatch = String(order.template_path || '').match(/^\/template-assets\/([^/]+)\//);
+  if (uploadedMatch) {
+    const uploadedRoot = path.join(storageDir, 'templates', uploadedMatch[1]);
+    const uploadedFiles = [];
+    const collectFiles = async (directory, relative = '') => {
+      const entries = await fs.readdir(directory, { withFileTypes: true });
+      for (const entry of entries) {
+        const entryRelative = path.join(relative, entry.name);
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) await collectFiles(entryPath, entryRelative);
+        else uploadedFiles.push({ name: `site/${entryRelative.replace(/\\/g, '/')}`, data: await fs.readFile(entryPath) });
+      }
+    };
+    try { await collectFiles(uploadedRoot); if (uploadedFiles.length) files.splice(1, files.length - 1, ...uploadedFiles); } catch { /* keep the generated fallback if the uploaded folder is unavailable */ }
+  }
   const [mediaRows] = await pool.query('SELECT original_name, mime_type, storage_path FROM website_media WHERE project_id = ? ORDER BY created_at', [order.project_id]);
   for (const media of mediaRows) {
     try { files.push({ name: `site/assets/${path.basename(media.storage_path)}`, data: await fs.readFile(media.storage_path) }); } catch { /* a missing optional upload must not block the paid archive */ }
@@ -246,6 +267,8 @@ function sendRazorpayError(error, res) {
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json({ limit: '2mb' }));
+const templateUpload = multer({ storage: multer.memoryStorage(), limits: { files: 300, fileSize: 15 * 1024 * 1024, fieldSize: 250 * 1024 } });
+app.use('/template-assets', express.static(path.join(storageDir, 'templates'), { extensions: ['html'] }));
 
 app.get('/api/v1/health', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ ok: true, database }); }
@@ -259,12 +282,12 @@ app.get('/api/v1/categories', async (_req, res) => {
 
 app.get('/api/v1/templates', async (req, res) => {
   const values = [publishedTemplateSlugs];
-  let where = 'WHERE t.slug IN (?)';
+  let where = 'WHERE (t.demo = TRUE OR t.slug IN (?))';
   if (req.query.category && req.query.category !== 'All') { where += ' AND c.slug = ?'; values.push(req.query.category); }
   if (req.query.type && req.query.type !== 'All') { where += ' AND t.type = ?'; values.push(req.query.type); }
   if (req.query.search) { where += ' AND (t.name LIKE ? OR t.description LIKE ? OR c.name LIKE ?)'; values.push(`%${req.query.search}%`, `%${req.query.search}%`, `%${req.query.search}%`); }
   const [rows] = await pool.query(`SELECT t.*, c.name AS category_name, c.slug AS category_slug FROM templates t JOIN categories c ON c.id = t.category_id ${where} ORDER BY t.featured DESC, t.created_at DESC`, values);
-  res.json(rows.map((row) => ({ ...row, features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features })));
+  res.json(rows.map((row) => ({ ...row, features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features, form_schema: typeof row.form_schema === 'string' ? JSON.parse(row.form_schema) : (row.form_schema || []), preview_url: row.template_path || null })));
 });
 
 app.get('/api/v1/packages', (_req, res) => res.json([
@@ -506,6 +529,49 @@ app.post('/api/v1/admin/categories', requireAdmin, async (req, res) => {
   if (!name || !slug || !description) return res.status(400).json({ message: 'Name, slug, and description are required.' });
   const [result] = await pool.query('INSERT INTO categories (name, slug, description, accent) VALUES (?, ?, ?, ?)', [name, slug, description, accent]);
   res.status(201).json({ id: result.insertId, name, slug, description, accent });
+});
+
+function sanitizeTemplatePath(value = '') {
+  const parts = String(value).replace(/\\/g, '/').split('/').filter((part) => part && part !== '.' && part !== '..');
+  return parts.map((part) => part.replace(/[^a-zA-Z0-9._-]/g, '-')).join('/');
+}
+
+app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('files', 300), async (req, res) => {
+  const { name, slug: requestedSlug, description, categoryId, price = 1000, pages = 1, type = 'Static', featured = 'false', formSchema = '[]' } = req.body || {};
+  if (!name || !description || !categoryId) return res.status(400).json({ message: 'Name, description, category and template folder are required.' });
+  if (!req.files?.length) return res.status(400).json({ message: 'Choose a template folder containing index.html.' });
+  if (!req.files.some((file) => path.basename(sanitizeTemplatePath(file.originalname)).toLowerCase() === 'index.html')) return res.status(400).json({ message: 'The uploaded folder must contain index.html.' });
+  let parsedFormSchema;
+  try { parsedFormSchema = JSON.parse(formSchema); } catch { return res.status(400).json({ message: 'Form fields must be valid JSON.' }); }
+  if (!Array.isArray(parsedFormSchema)) return res.status(400).json({ message: 'Form fields must be an array.' });
+  const slug = String(requestedSlug || name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 150);
+  if (!slug) return res.status(400).json({ message: 'A valid template name or slug is required.' });
+  const [[existing]] = await pool.query('SELECT id FROM templates WHERE slug = ?', [slug]);
+  if (existing) return res.status(409).json({ message: 'A template with this slug already exists.' });
+  const [[category]] = await pool.query('SELECT id, name, slug FROM categories WHERE id = ?', [categoryId]);
+  if (!category) return res.status(400).json({ message: 'Selected category was not found.' });
+  const rawPaths = req.files.map((file) => sanitizeTemplatePath(file.originalname));
+  const indexPath = rawPaths.find((filePath) => path.basename(filePath).toLowerCase() === 'index.html');
+  const firstSegment = indexPath.includes('/') ? indexPath.split('/')[0] : '';
+  const hasCommonRoot = firstSegment && rawPaths.every((filePath) => filePath === firstSegment || filePath.startsWith(`${firstSegment}/`));
+  const relativePaths = rawPaths.map((filePath) => hasCommonRoot ? filePath.slice(firstSegment.length + 1) : filePath);
+  const entryPath = hasCommonRoot ? indexPath.slice(firstSegment.length + 1) : indexPath;
+  const templateDirectory = path.join(storageDir, 'templates', slug);
+  await fs.rm(templateDirectory, { recursive: true, force: true });
+  await fs.mkdir(templateDirectory, { recursive: true });
+  for (const [index, file] of req.files.entries()) {
+    const relativePath = relativePaths[index];
+    if (!relativePath || relativePath.length > 300) continue;
+    const destination = path.join(templateDirectory, relativePath);
+    if (!destination.startsWith(`${templateDirectory}${path.sep}`)) return res.status(400).json({ message: 'Invalid file path.' });
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.writeFile(destination, file.buffer);
+  }
+  const thumbnailFile = relativePaths.find((filePath) => /\.(png|jpe?g|webp|gif)$/i.test(filePath));
+  const thumbnailUrl = thumbnailFile ? `/template-assets/${slug}/${thumbnailFile}` : 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85';
+  const templatePath = `/template-assets/${slug}/${entryPath}`;
+  const [result] = await pool.query('INSERT INTO templates (category_id, name, slug, description, pages, type, price, featured, demo, thumbnail_url, palette, features, template_path, form_schema) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?)', [category.id, name, slug, description, Math.max(1, Number(pages) || 1), type === 'Dynamic' ? 'Dynamic' : 'Static', Math.max(0, Number(price) || 0), ['true', '1', 'on'].includes(String(featured).toLowerCase()), thumbnailUrl, 'custom', JSON.stringify(['Uploaded HTML template', 'Customer form fields', 'Live preview']), templatePath, JSON.stringify(parsedFormSchema)]);
+  res.status(201).json({ id: result.insertId, name, slug, category_name: category.name, category_slug: category.slug, template_path: templatePath, preview_url: templatePath, form_schema: parsedFormSchema, thumbnail_url: thumbnailUrl });
 });
 
 app.patch('/api/v1/admin/templates/:id', requireAdmin, async (req, res) => {

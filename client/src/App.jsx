@@ -14,7 +14,7 @@ import {
   Clock3, Code2, Compass, Copy, Crown, Download, ExternalLink, Eye, FileText, Filter,
   Heart, Home as HomeIcon, LayoutDashboard, LifeBuoy, Menu, MessageCircle, Monitor, Palette,
   PanelLeft, Plus, Rocket, Search, ShieldCheck, Sparkles, Smartphone, SlidersHorizontal,
-  RotateCcw, Star, Store, Tablet, WandSparkles, X, Zap
+  RotateCcw, Star, Store, Tablet, Upload, WandSparkles, X, Zap
 } from 'lucide-react';
 
 const configuredApiUrl = String(import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
@@ -458,7 +458,6 @@ function SiteChrome({ onAccount, language, onLanguageChange }) {
         <button className="brand" onClick={() => go('/')} aria-label="WebBasket home"><span className="brand-mark">WebBasket</span><span>web<span>basket</span></span></button>
         <nav className={`nav-links ${mobileOpen ? 'open' : ''}`}>
           <button className={location.pathname === '/' ? 'active' : ''} onClick={() => go('/')}>Home</button>
-          <a href="/#features" onClick={() => setMobileOpen(false)}>Features</a>
           <button className={location.pathname === '/templates' ? 'active' : ''} onClick={() => go('/templates')}>Templates</button>
           <button className={location.pathname === '/pricing' ? 'active' : ''} onClick={() => go('/pricing')}>Pricing</button>
           <a href="/#about" onClick={() => setMobileOpen(false)}>About</a>
@@ -791,7 +790,7 @@ function WhatsAppFloat() {
       ? 'Hi Web Guruji, I want help choosing the right website package for my business.'
       : 'Hi Web Guruji, I want to build a professional website for my business.';
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(pageMessage)}`;
-  return <a className="whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp chat" title="Open WhatsApp chat"><span className="whatsapp-pulse" /><WhatsAppIcon size={22} /><span><b>Talk to us on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={15} /></a>;
+  return <a className="whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp" title="Open WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={34} /></a>;
 }
 
 function normalizeWhatsAppNumber(value) {
@@ -804,13 +803,13 @@ function WhatsAppIconLegacy({ size = 19 }) {
 }
 
 function WhatsAppIcon({ size = 19 }) {
-  return <img className="whatsapp-real-icon" src="https://img.icons8.com/color/96/whatsapp--v1.png" width={size} height={size} alt="WhatsApp" aria-hidden="true" />;
+  return <span className="whatsapp-real-icon" style={{ width: size, height: size }} aria-hidden="true"><svg viewBox="0 0 48 48" width={size} height={size}><circle cx="24" cy="24" r="23" fill="#25D366" /><circle cx="24" cy="24" r="17.5" fill="none" stroke="#fff" strokeWidth="2.8" /><path fill="#fff" d="M33.2 28.4c-.5-.3-3-1.5-3.5-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.4-.6.4-1.1.1-.5-.3-2.1-.8-4-2.5-1.5-1.3-2.5-2.9-2.8-3.4-.3-.5 0-.8.2-1.1.2-.2.5-.6.8-.9.2-.3.3-.5.5-.9.2-.4.1-.7 0-1-.1-.3-1.2-2.9-1.6-4-.4-1-.8-.9-1.2-.9h-1c-.4 0-1 .1-1.5.7-.5.5-1.9 1.9-1.9 4.7s1.9 5.5 2.2 5.9c.3.4 3.8 5.8 9.2 8.1 1.3.6 2.4.9 3.2 1.1 1.4.4 2.6.3 3.6.2 1.1-.2 3.3-1.3 3.8-2.6.5-1.3.5-2.4.3-2.6-.1-.2-.5-.4-1-.6Z" /></svg></span>;
 }
 
 function PreviewWhatsAppFloat({ number }) {
   const normalized = normalizeWhatsAppNumber(number);
   const href = `https://wa.me/${normalized}?text=${encodeURIComponent('Hi, I would like to know more about this business.')}`;
-  return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Chat with this business on WhatsApp" title="Chat with this business on WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={22} /><span><b>Chat on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={13} /></a>;
+  return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp" title="Open WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={31} /></a>;
 }
 
 function submitTemplateFormToWhatsApp(event, { number, businessName, subject }) {
@@ -1043,6 +1042,51 @@ function CategorySectionFields({ content, setContent, config, onUpload, mediaPre
   return <div className="section-editor-fields category-section-fields"><div className="section-editor-heading"><span className="eyebrow">{config.serviceLabel}</span><b>Edit your {config.defaultBusinessName} sections</b><small>These fields control the 9+ section one-page preview.</small></div><div className="section-editor-group"><b>About section</b><label>About heading<input value={content.aboutTitle} onChange={(event) => update('aboutTitle', event.target.value)} /></label><label>About paragraph<textarea value={content.aboutBody} onChange={(event) => update('aboutBody', event.target.value)} rows="3" /></label><InlineSectionUpload label="About image" description="Story section image" section="about" onUpload={onUpload} mediaPreviews={mediaPreviews} onRemove={onRemove} /></div><div className="section-editor-group"><b>{config.serviceLabel} section</b><label>Section heading<input value={content.servicesTitle} onChange={(event) => update('servicesTitle', event.target.value)} /></label>{content.services.map((service, index) => <label key={index}>{config.serviceLabel} {index + 1}<input value={service} onChange={(event) => update('services', content.services.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /></label>)}</div><div className="section-editor-group"><b>Showcase section</b><label>Showcase heading<input value={content.showcaseTitle} onChange={(event) => update('showcaseTitle', event.target.value)} /></label><InlineSectionUpload label="Gallery images" description="Upload one or more showcase images" section="gallery" multiple onUpload={onUpload} mediaPreviews={mediaPreviews} onRemove={onRemove} /></div><div className="section-editor-group"><b>Testimonial section</b><label>Customer quote<textarea value={content.testimonial} onChange={(event) => update('testimonial', event.target.value)} rows="3" /></label></div><div className="section-editor-group"><b>FAQ section</b><label>FAQ heading<input value={content.faqTitle} onChange={(event) => update('faqTitle', event.target.value)} /></label><label>FAQ answer<textarea value={content.faqBody} onChange={(event) => update('faqBody', event.target.value)} rows="3" /></label></div><div className="section-editor-group"><b>Footer section</b><label>Footer tagline<input value={content.footerTagline} onChange={(event) => update('footerTagline', event.target.value)} /></label></div></div>;
 }
 
+function UploadedTemplateForm({ fields, values, onChange }) {
+  if (!fields.length) return <div className="uploaded-template-form-note">This HTML template has no custom fields. Add content in the uploaded files and preview it below.</div>;
+  return <div className="section-editor-fields uploaded-template-fields"><div className="section-editor-heading"><span className="eyebrow">Uploaded template fields</span><b>Edit the fields for this website</b><small>Every value updates the HTML preview immediately.</small></div>{fields.map((field, index) => {
+    const key = field.key || `field_${index + 1}`;
+    const label = field.label || key;
+    const type = ['textarea', 'email', 'tel', 'url', 'number', 'select'].includes(field.type) ? field.type : 'text';
+    const value = values[key] ?? field.defaultValue ?? '';
+    const update = (event) => onChange(key, event.target.value);
+    return <label key={key}>{label}{type === 'textarea' ? <textarea value={value} onChange={update} rows="4" placeholder={field.placeholder || ''} required={Boolean(field.required)} /> : type === 'select' ? <select value={value} onChange={update} required={Boolean(field.required)}><option value="">Select {label}</option>{String(field.options || '').split(',').map((option) => option.trim()).filter(Boolean).map((option) => <option key={option} value={option}>{option}</option>)}</select> : <input type={type} value={value} onChange={update} placeholder={field.placeholder || ''} required={Boolean(field.required)} />}</label>;
+  })}</div>;
+}
+
+function publicTemplateAssetUrl(value) {
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  const base = API.replace(/\/api\/v1\/?$/, '');
+  return `${base}${String(value).startsWith('/') ? '' : '/'}${value}`;
+}
+
+function escapeTemplateValue(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
+function UploadedTemplatePreview({ template, customFields = {}, businessName, whatsappNumber }) {
+  const [viewport, setViewport] = useState('desktop');
+  const [source, setSource] = useState('');
+  const [error, setError] = useState('');
+  const templateUrl = publicTemplateAssetUrl(template.preview_url || template.template_path);
+  useEffect(() => {
+    let active = true;
+    if (!templateUrl) return undefined;
+    setError('');
+    fetch(templateUrl).then((response) => response.ok ? response.text() : Promise.reject(new Error('Could not load template preview.'))).then((html) => {
+      if (!active) return;
+      const baseHref = new URL('./', templateUrl).href;
+      const values = { businessName, ...customFields };
+      const withValues = html.replace(/\{\{\s*([\w.-]+)\s*\}\}|\[\[\s*([\w.-]+)\s*\]\]/g, (_match, first, second) => escapeTemplateValue(values[first || second] || ''));
+      const withBase = /<head[\s>]/i.test(withValues) ? withValues.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`) : `<base href="${baseHref}">${withValues}`;
+      setSource(withBase);
+    }).catch((fetchError) => { if (active) setError(fetchError.message || 'Could not load the uploaded template.'); });
+    return () => { active = false; };
+  }, [templateUrl, businessName, customFields]);
+  return <div className="builder-preview full-site-preview-panel uploaded-template-preview-panel"><div className="preview-toolbar"><span>{template.name} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport} uploaded-template-frame`}>{error ? <div className="uploaded-template-error"><X size={18} /><b>{error}</b><a href={templateUrl} target="_blank" rel="noreferrer">Open uploaded index.html</a></div> : source ? <iframe title={`${template.name} preview`} srcDoc={source} sandbox="allow-forms allow-modals allow-popups allow-scripts" /> : <div className="uploaded-template-loading">Loading uploaded index.html…</div>}<PreviewWhatsAppFloat number={whatsappNumber} /></div></div>;
+}
+
 function BuilderV4({ templates, onToast }) {
   const { templateId } = useParams();
   const navigate = useNavigate();
@@ -1051,6 +1095,8 @@ function BuilderV4({ templates, onToast }) {
   const isMaisonAurele = template.name === 'Maison Aurele';
   const isPortfolioTemplate = template.category_slug === 'portfolios';
   const isManufacturingTemplate = template.category_slug === 'manufacturing';
+  const isUploadedTemplate = Boolean(template.template_path || template.preview_url);
+  const uploadedFields = Array.isArray(template.form_schema) ? template.form_schema : [];
   const previewConfig = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
   const token = localStorage.getItem('webguruji_token');
   const [businessName, setBusinessName] = useState(isMaisonAurele ? 'Maison Aurele' : previewConfig.defaultBusinessName);
@@ -1069,16 +1115,18 @@ function BuilderV4({ templates, onToast }) {
   const [mediaIds, setMediaIds] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [categoryContent, setCategoryContent] = useState(() => categoryEditorDefaults(template.category_slug));
+  const [customFields, setCustomFields] = useState(() => Object.fromEntries(uploadedFields.map((field) => [field.key, field.defaultValue || ''])));
   const [sectionContent, setSectionContent] = useState({ storyTitle: 'A house built on quiet obsession.', storyBody: 'Founded by Chef Julien Aurele in a former 19th-century atelier, our dining room was conceived as a place where time slows and every detail is considered.', storySecond: 'We cook with what the season gives - line-caught fish from Brittany, herbs from our own garden in the Loire - and serve it with the warmth of a private home.', menuIntro: 'A glimpse of our autumn tasting menu - nine courses, each a small story.', menuItems: [{ name: 'Hokkaido Scallop', description: 'Beurre blanc, Oscietra caviar, garden herbs', price: '₹3,800' }, { name: 'Brittany Lobster', description: 'Butter-poached tail, saffron emulsion, amaranth', price: '₹6,400' }, { name: 'Grand Cru Sphere', description: 'Valrhona chocolate, cocoa soil, 24k gold leaf', price: '₹2,400' }], chefQuote: '“Simplicity is the final refinement.”', chefBody: "Chef Julien's philosophy is restraint: three elements on a plate, each allowed to speak clearly.", reservationTitle: 'Reserve your evening.', reservationBody: 'Tables are released thirty days in advance. For parties larger than eight or private dining, please call us directly.', footerTitle: 'Maison Aurele', footerTagline: 'Contemporary French fine dining' });
   const [saved, setSaved] = useState(false);
   const saveProject = async (silent = false) => {
     try {
-      const body = { templateId: template.id, projectName: `${businessName} website`, businessName, content: { tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, mediaIds, mediaAssets: mediaPreviews.map(({ id, name, section }) => ({ id, name, section })), sectionContent, categoryContent } };
+      const body = { templateId: template.id, projectName: `${businessName} website`, businessName, content: { tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, customFields, mediaIds, mediaAssets: mediaPreviews.map(({ id, name, section }) => ({ id, name, section })), sectionContent, categoryContent } };
       const response = await fetch(projectId ? `${API}/projects/${projectId}` : `${API}/projects`, { method: projectId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
       if (!response.ok) throw new Error(); const data = await response.json(); setProjectId(data.id); setSaved(true); if (!silent) onToast('Full website draft saved'); return data.id;
     } catch { if (!silent) onToast('Connect the API to save your website'); return null; }
   };
-  useEffect(() => { if (!token) return undefined; const timer = setTimeout(() => saveProject(true), 900); return () => clearTimeout(timer); }, [businessName, tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, mediaIds, mediaPreviews, sectionContent, categoryContent, token]);
+  useEffect(() => { if (!token) return undefined; const timer = setTimeout(() => saveProject(true), 900); return () => clearTimeout(timer); }, [businessName, tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, customFields, mediaIds, mediaPreviews, sectionContent, categoryContent, token]);
+  if (isUploadedTemplate) return <main className="builder-page"><div className="builder-shell"><aside className="builder-sidebar"><div className="builder-brand"><button className="brand" onClick={() => navigate('/')}><span className="brand-mark">wg</span><span>web<span>guruji</span></span></button><span className="builder-tag">Uploaded HTML template</span></div><div className="builder-template-mini"><img src={template.thumbnail_url} alt="Selected template" /><div><span>Selected template</span><b>{template.name}</b><button onClick={() => navigate('/templates')}>Change template</button></div></div><div className="builder-step active"><span>01</span><div><b>Template fields</b><small>Connected to preview</small></div><Check size={16} /></div><div className="builder-step"><span>02</span><div><b>Preview and review</b><small>Desktop, tablet and mobile</small></div></div><div className="builder-help"><LifeBuoy size={17} /><b>Need a hand?</b><p>Ask a specialist while you build.</p><a href={`https://wa.me/${WHATSAPP_NUMBER}`}>Talk to the team <ArrowRight size={13} /></a></div></aside><section className="builder-main"><div className="builder-toolbar"><div><span className="crumb">Templates / {template.name}</span><h1>Customize your template.</h1></div><div className="builder-toolbar-actions"><span className={`save-status ${saved ? 'saved' : ''}`}><span />{saved ? 'Auto-saved' : 'Live draft'}</span><button className="button button-outline button-small" onClick={() => saveProject()}><Copy size={14} /> Save now</button></div></div><div className="builder-workspace full-builder-workspace"><div className="builder-form"><div className="form-heading"><div className="eyebrow">Folder template, full preview</div><h2>Fill in your website.</h2><p>These fields are created by the admin from your uploaded HTML template and update the preview live.</p></div><UploadedTemplateForm fields={uploadedFields} values={customFields} onChange={(key, value) => setCustomFields((current) => ({ ...current, [key]: value }))} /><label>Business name<input value={businessName} onChange={(event) => setBusinessName(event.target.value)} /></label><label>Tagline<input value={tagline} onChange={(event) => setTagline(event.target.value)} /></label><label>About / story<textarea value={about} onChange={(event) => setAbout(event.target.value)} rows="4" /></label><label>WhatsApp number<input value={whatsappNumber} onChange={(event) => setWhatsappNumber(event.target.value)} placeholder="+91 84460 79635" /><small className="form-hint">This number powers the live WhatsApp button.</small></label><div className="builder-purchase"><div><b>Preview before purchase</b><span>Your uploaded HTML folder remains the selected website template.</span></div><button className="button button-orange" onClick={() => saveProject()}>Save website <ArrowRight size={15} /></button></div></div><FullWebsitePreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} whatsappNumber={whatsappNumber} email={email} city={city} address={address} mapUrl={mapUrl} hours={hours} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} packageId={packageId} customFields={customFields} /></div></section></div></main>;
   const handleUpload = async (event) => {
     const files = Array.from(event.target.files || []); if (!files.length) return;
     if (!token) return onToast('Log in before uploading your logo or images.');
@@ -1367,11 +1415,12 @@ function ManufacturingPreview({ template, businessName, tagline, about, phone, e
   </div></div><PreviewWhatsAppFloat number={whatsappNumber} /></div>;
 }
 
-function FullWebsitePreview({ template, businessName, tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, mediaPreviews, packageId, sectionContent, categoryContent }) {
+function FullWebsitePreview({ template, businessName, tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, mediaPreviews, packageId, sectionContent, categoryContent, customFields = {} }) {
   const [viewport, setViewport] = useState('desktop');
   const [page, setPage] = useState('home');
   const images = mediaPreviews.length ? mediaPreviews.map((item) => item.url) : [template.thumbnail_url, 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80', 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=900&q=80'];
   const pageTabs = packageId === 'static' ? [{ id: 'home', label: 'One-page site' }] : [{ id: 'home', label: 'Homepage' }, { id: 'about', label: 'About page' }];
+  if (template.template_path || template.preview_url) return <UploadedTemplatePreview template={template} businessName={businessName} customFields={customFields} whatsappNumber={whatsappNumber} />;
   if (template.designVariant) return <BusinessVariantPreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} categoryContent={categoryContent} />;
   if (template.category_slug === 'hotels-resorts') return <HotelGavkariPreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} hours={hours} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} />;
   if (template.category_slug === 'portfolios') return <PortfolioPreview template={template} businessName={businessName} about={about} email={email} whatsappNumber={whatsappNumber} mediaPreviews={mediaPreviews} />;
@@ -1578,6 +1627,63 @@ function AdminLoginCard({ onSuccess }) {
   </div>;
 }
 
+function AdminTemplateUpload({ categories: categoryRows, onUploaded }) {
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [price, setPrice] = useState('1000');
+  const [pages, setPages] = useState('1');
+  const [type, setType] = useState('Static');
+  const [featured, setFeatured] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [fields, setFields] = useState([{ key: 'businessName', label: 'Business name', type: 'text', required: true, defaultValue: '' }]);
+  const [status, setStatus] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const updateField = (index, key, value) => setFields((current) => current.map((field, fieldIndex) => fieldIndex === index ? { ...field, [key]: value } : field));
+  const handleFolderChange = async (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    setFiles(selectedFiles);
+    const indexFile = selectedFiles.find((file) => file.name.toLowerCase() === 'index.html');
+    if (!indexFile) return;
+    const html = await indexFile.text();
+    const matches = [...html.matchAll(/\{\{\s*([\w.-]+)\s*\}\}|\[\[\s*([\w.-]+)\s*\]\]|data-wb-field=["']([^"']+)["']/g)].map((match) => match[1] || match[2] || match[3]);
+    const keys = [...new Set(matches)].filter(Boolean);
+    if (!keys.length) return;
+    setFields((current) => [...current, ...keys.filter((key) => !current.some((field) => field.key === key)).map((key) => ({ key, label: key.replace(/[-_.]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()), type: 'text', required: false, defaultValue: '' }))]);
+  };
+  useEffect(() => {
+    const input = document.getElementById('template-folder-input');
+    if (!input) return undefined;
+    input.addEventListener('change', handleFolderChange);
+    return () => input.removeEventListener('change', handleFolderChange);
+  });
+  const addField = () => setFields((current) => [...current, { key: `field${current.length + 1}`, label: `Field ${current.length + 1}`, type: 'text', required: false, defaultValue: '' }]);
+  const removeField = (index) => setFields((current) => current.filter((_field, fieldIndex) => fieldIndex !== index));
+  const submit = async (event) => {
+    event.preventDefault();
+    setStatus('');
+    if (!files.length) return setStatus('Choose the complete website folder. It must contain index.html.');
+    if (!categoryId) return setStatus('Select a business category.');
+    const cleanedFields = fields.filter((field) => field.key.trim() && field.label.trim()).map((field) => ({ ...field, key: field.key.trim().replace(/[^a-zA-Z0-9_-]/g, '_'), label: field.label.trim() }));
+    const body = new FormData();
+    body.append('name', name.trim()); body.append('slug', slug.trim()); body.append('description', description.trim()); body.append('categoryId', categoryId); body.append('price', price); body.append('pages', pages); body.append('type', type); body.append('featured', String(featured)); body.append('formSchema', JSON.stringify(cleanedFields));
+    files.forEach((file) => body.append('files', file, file.webkitRelativePath || file.name));
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API}/admin/templates/upload`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('webguruji_token') || ''}` }, body });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Could not upload template folder.');
+      setStatus(`Uploaded ${data.name}. Customers can now open it from the ${data.category_name} category.`);
+      setName(''); setSlug(''); setDescription(''); setFiles([]); setFields([{ key: 'businessName', label: 'Business name', type: 'text', required: true, defaultValue: '' }]);
+      const input = document.getElementById('template-folder-input'); if (input) input.value = '';
+      onUploaded?.();
+    } catch (uploadError) { setStatus(uploadError.message || 'Could not upload template folder.'); }
+    finally { setSubmitting(false); }
+  };
+  return <form className="admin-template-upload" onSubmit={submit}><div className="panel-heading"><div><span className="eyebrow">Templates / Add folder</span><h2>Upload a complete HTML website.</h2><p>Choose the site folder. Its <code>index.html</code>, CSS, JavaScript and assets are stored together and previewed as one template.</p></div><Upload size={22} /></div><div className="admin-template-upload-grid"><label>Template name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="My business template" required /></label><label>Slug (optional)<input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="my-business-template" /></label><label>Category<select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required><option value="">Select category</option>{(categoryRows || []).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label>Price in rupees<input type="number" min="0" value={price} onChange={(event) => setPrice(event.target.value)} /></label><label>Pages<input type="number" min="1" value={pages} onChange={(event) => setPages(event.target.value)} /></label><label>Type<select value={type} onChange={(event) => setType(event.target.value)}><option>Static</option><option>Dynamic</option></select></label></div><label>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows="3" placeholder="Describe this website template." required /></label><label className="admin-template-folder-picker"><b>Website folder</b><small>Select the folder that contains index.html. Subfolders and assets are included automatically.</small><input id="template-folder-input" type="file" multiple webkitdirectory="true" directory="true" onChange={(event) => setFiles(Array.from(event.target.files || []))} required /><span>{files.length ? `${files.length} files selected` : 'Choose website folder'}</span></label><label className="admin-template-checkbox"><input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} /> Show as a featured template</label><div className="admin-template-fields-heading"><div><span className="eyebrow">Customer form</span><b>Create fields from the uploaded template</b><small>Use <code>{'{{businessName}}'}</code> or <code>{'[[businessName]]'}</code> inside HTML text to show a value.</small></div><button type="button" className="button button-outline button-small" onClick={addField}><Plus size={14} /> Add field</button></div><div className="admin-template-field-list">{fields.map((field, index) => <div className="admin-template-field-row" key={`${field.key}-${index}`}><input value={field.key} onChange={(event) => updateField(index, 'key', event.target.value)} placeholder="field_key" aria-label="Field key" /><input value={field.label} onChange={(event) => updateField(index, 'label', event.target.value)} placeholder="Field label" aria-label="Field label" /><select value={field.type} onChange={(event) => updateField(index, 'type', event.target.value)} aria-label="Field type"><option value="text">Text</option><option value="textarea">Long text</option><option value="email">Email</option><option value="tel">Phone</option><option value="url">URL</option><option value="number">Number</option><option value="select">Select</option></select><input value={field.defaultValue || ''} onChange={(event) => updateField(index, 'defaultValue', event.target.value)} placeholder="Default value" aria-label="Default value" />{field.type === 'select' && <input value={field.options || ''} onChange={(event) => updateField(index, 'options', event.target.value)} placeholder="Options comma separated" aria-label="Options" />}<label className="admin-template-required"><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, 'required', event.target.checked)} /> Required</label><button type="button" className="icon-button" onClick={() => removeField(index)} aria-label="Remove field"><X size={15} /></button></div>)}</div>{status && <div className="admin-template-status"><Check size={16} /> {status}</div>}<button className="button button-orange" type="submit" disabled={submitting}>{submitting ? 'Uploading folder…' : 'Upload template folder'} <ArrowRight size={15} /></button></form>;
+}
+
 function AdminDataSection({ section, rows, loading, onReload }) {
   const config = adminSectionConfig[section];
   const formatValue = (key, row) => {
@@ -1605,6 +1711,7 @@ function AdminV3() {
   const [locked, setLocked] = useState(!localStorage.getItem('webguruji_token'));
   const [overview, setOverview] = useState({ customers: 0, templates: 0, projects: 0, enquiries: 0 });
   const [rows, setRows] = useState([]);
+  const [categoryRows, setCategoryRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const logout = async () => {
@@ -1649,6 +1756,7 @@ function AdminV3() {
   };
 
   useEffect(() => { if (user) loadOverview(); }, [user]);
+  useEffect(() => { fetch(`${API}/categories`).then((response) => response.ok ? response.json() : Promise.reject()).then(setCategoryRows).catch(() => setCategoryRows([])); }, []);
   useEffect(() => { loadSection(); }, [section, user]);
 
   const onLogin = (adminUser) => { setUser(adminUser); setLocked(false); };
@@ -1665,7 +1773,7 @@ function AdminV3() {
       {locked ? <AdminLoginCard onSuccess={onLogin} /> : section === 'Overview' ? <>
         <div className="admin-stats stats-grid"><StatCard label="Customers" value={overview.customers} icon={Building2} detail="Registered accounts" /><StatCard label="Templates" value={overview.templates} icon={Store} detail="Published and demo" /><StatCard label="Projects" value={overview.projects} icon={Monitor} detail="Website drafts" /><StatCard label="Enquiries" value={overview.enquiries} icon={MessageCircle} detail="Needs a response" /></div>
         <div className="admin-content-grid"><div className="dashboard-panel"><div className="panel-heading"><div><span className="eyebrow">Marketplace health</span><h2>Keep the shelf useful.</h2><p>Live counts are loaded from your database after admin authentication.</p></div><button className="button button-outline button-small" onClick={loadOverview} disabled={loading}><RotateCcw size={14} /> Refresh</button></div><div className="chart-placeholder"><div className="chart-axis"><span>12</span><span>9</span><span>6</span><span>3</span><span>0</span></div><div className="bars">{[38, 56, 47, 72, 61, 84, 68, 92, 78, 87, 74, 96].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="chart-labels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div></div></div><div className="dashboard-panel admin-list"><div className="panel-heading"><div><span className="eyebrow">Review queue</span><h2>Console ready.</h2></div><Clock3 size={18} /></div><div className="empty-mini"><Check size={19} /><p>Use the sidebar to manage templates, categories, orders, deployment requests, and settings.</p></div></div></div>
-      </> : section === 'Reports' ? <div className="admin-report-grid"><div className="dashboard-panel"><span className="eyebrow">Reports</span><h2>Marketplace summary.</h2><p>Customers, templates, projects and enquiries are available in the overview cards. Use the other sections to inspect individual records.</p><button className="button button-orange button-small" onClick={() => setSection('Overview')}>Back to overview <ArrowRight size={14} /></button></div><div className="dashboard-panel"><span className="eyebrow">Access</span><h2>Signed in securely.</h2><p>{user?.email}<br />Role: <b>{user?.role}</b></p></div></div> : section === 'Settings' ? <div className="dashboard-panel admin-settings-panel"><span className="eyebrow">Settings</span><h2>Administrator account.</h2><p>Signed in as <b>{user?.email}</b>. Only users with the database role <code>admin</code> can access live records.</p><div className="admin-settings-actions"><button className="button button-outline" onClick={logout}>Sign out <ArrowRight size={14} /></button><button className="button button-dark" onClick={() => navigate('/')}>Open marketplace <ArrowRight size={14} /></button></div></div> : <AdminDataSection section={section} rows={rows} loading={loading} onReload={loadSection} />}
+      </> : section === 'Reports' ? <div className="admin-report-grid"><div className="dashboard-panel"><span className="eyebrow">Reports</span><h2>Marketplace summary.</h2><p>Customers, templates, projects and enquiries are available in the overview cards. Use the other sections to inspect individual records.</p><button className="button button-orange button-small" onClick={() => setSection('Overview')}>Back to overview <ArrowRight size={14} /></button></div><div className="dashboard-panel"><span className="eyebrow">Access</span><h2>Signed in securely.</h2><p>{user?.email}<br />Role: <b>{user?.role}</b></p></div></div> : section === 'Settings' ? <div className="dashboard-panel admin-settings-panel"><span className="eyebrow">Settings</span><h2>Administrator account.</h2><p>Signed in as <b>{user?.email}</b>. Only users with the database role <code>admin</code> can access live records.</p><div className="admin-settings-actions"><button className="button button-outline" onClick={logout}>Sign out <ArrowRight size={14} /></button><button className="button button-dark" onClick={() => navigate('/')}>Open marketplace <ArrowRight size={14} /></button></div></div> : <>{section === 'Templates' && <AdminTemplateUpload categories={categoryRows} onUploaded={() => { loadSection(); loadOverview(); }} />}<AdminDataSection section={section} rows={rows} loading={loading} onReload={loadSection} /></>}
     </section>
   </div></main>;
 }

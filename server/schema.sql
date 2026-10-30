@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS templates (
   thumbnail_url TEXT NOT NULL,
   palette VARCHAR(120) NOT NULL,
   features JSON,
+  template_path VARCHAR(500) NULL,
+  form_schema JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_template_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
