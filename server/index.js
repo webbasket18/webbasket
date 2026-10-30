@@ -331,8 +331,8 @@ app.get('/api/v1/categories', async (_req, res) => {
 });
 
 app.get('/api/v1/templates', async (req, res) => {
-  const values = [publishedTemplateSlugs];
-  let where = 'WHERE (t.demo = TRUE OR t.slug IN (?))';
+  const values = [];
+  let where = 'WHERE t.demo = TRUE';
   if (req.query.category && req.query.category !== 'All') { where += ' AND c.slug = ?'; values.push(req.query.category); }
   if (req.query.type && req.query.type !== 'All') { where += ' AND t.type = ?'; values.push(req.query.type); }
   if (req.query.search) { where += ' AND (t.name LIKE ? OR t.description LIKE ? OR c.name LIKE ?)'; values.push(`%${req.query.search}%`, `%${req.query.search}%`, `%${req.query.search}%`); }
@@ -678,7 +678,11 @@ app.delete('/api/v1/admin/templates/:id', requireAdmin, async (req, res) => {
   const [[template]] = await pool.query('SELECT id, slug FROM templates WHERE id = ?', [req.params.id]);
   if (!template) return res.status(404).json({ message: 'Template not found.' });
   const [[usage]] = await pool.query('SELECT COUNT(*) AS total FROM website_projects WHERE template_id = ?', [template.id]);
-  if (Number(usage.total) > 0) return res.status(409).json({ message: 'This template is used by an existing customer project, so it cannot be deleted.' });
+  if (Number(usage.total) > 0) {
+    await pool.query('UPDATE templates SET demo = FALSE, featured = FALSE WHERE id = ?', [template.id]);
+    await fs.rm(path.join(storageDir, 'templates', template.slug), { recursive: true, force: true });
+    return res.json({ ok: true, archived: true, message: 'Template archived from the marketplace because an existing customer project uses it.' });
+  }
   await pool.query('DELETE FROM templates WHERE id = ?', [template.id]);
   await fs.rm(path.join(storageDir, 'templates', template.slug), { recursive: true, force: true });
   res.json({ ok: true });

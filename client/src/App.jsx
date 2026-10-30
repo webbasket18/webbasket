@@ -1787,7 +1787,7 @@ function AdminTemplateDataSection({ rows, loading, onReload }) {
       const response = await fetch(`${API}/admin/templates/${row.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('webguruji_token') || ''}` } });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'Could not delete template.');
-      if (editing === row.id) setEditing(null); setStatus('Template deleted successfully.'); onReload();
+      if (editing === row.id) setEditing(null); setStatus(data.archived ? 'Template archived from the marketplace; existing customer projects remain safe.' : 'Template deleted successfully.'); onReload();
     } catch (error) { setStatus(error.message || 'Could not delete template.'); }
     finally { setBusy(false); }
   };
