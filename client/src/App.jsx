@@ -1724,6 +1724,12 @@ function AdminTemplateUpload({ categories: categoryRows, onUploaded }) {
     try {
       const response = await fetch(`${API}/admin/templates/upload`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('webguruji_token') || ''}` }, body });
       const data = await response.json().catch(() => ({}));
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('webguruji_token');
+        localStorage.removeItem('webguruji_user');
+        window.location.assign('/admin');
+        return;
+      }
       if (!response.ok) throw new Error(data.message || 'Could not upload template folder.');
       setStatus(`Uploaded ${data.name}. Customers can now open it from the ${data.category_name} category.`);
       setName(''); setSlug(''); setDescription(''); setFiles([]); setFields([{ key: 'businessName', label: 'Business name', type: 'text', required: true, defaultValue: '' }]);
@@ -1759,7 +1765,10 @@ function AdminV3() {
   const adminSections = [[LayoutDashboard, 'Overview'], [Store, 'Templates'], [Building2, 'Categories'], [FileText, 'Orders'], [Rocket, 'Deployments'], [BarChart3, 'Reports'], [ShieldCheck, 'Settings']];
   const [section, setSection] = useState('Overview');
   const [user, setUser] = useState(() => { try { const stored = JSON.parse(localStorage.getItem('webguruji_user') || 'null'); return stored?.role === 'admin' ? stored : null; } catch { return null; } });
-  const [locked, setLocked] = useState(!localStorage.getItem('webguruji_token'));
+  const [locked, setLocked] = useState(() => {
+    const token = localStorage.getItem('webguruji_token');
+    try { return !token || JSON.parse(localStorage.getItem('webguruji_user') || 'null')?.role !== 'admin'; } catch { return true; }
+  });
   const [overview, setOverview] = useState({ customers: 0, templates: 0, projects: 0, enquiries: 0 });
   const [rows, setRows] = useState([]);
   const [categoryRows, setCategoryRows] = useState([]);
@@ -1780,6 +1789,13 @@ function AdminV3() {
     setLoading(true);
     try {
       const response = await fetch(`${API}/admin/overview`, { headers: { Authorization: `Bearer ${token}` } });
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('webguruji_token');
+        localStorage.removeItem('webguruji_user');
+        setUser(null);
+        setLocked(true);
+        return;
+      }
       if (!response.ok) throw new Error('Admin authentication required.');
       setOverview(await response.json());
       setLocked(false);
