@@ -902,6 +902,11 @@ h1, h2, h3 { font-family: Manrope, sans-serif; letter-spacing: -.04em; line-heig
 
 /* Uploaded HTML template workflow */
 .uploaded-template-fields { margin: 0 0 20px; padding: 18px; border: 1px solid #d5e2f4; border-radius: 14px; background: #f7faff; }
+.uploaded-template-image-field { display: grid; gap: 10px; margin-bottom: 15px; padding: 12px; border: 1px solid #dce7f4; border-radius: 10px; background: #fff; }
+.uploaded-template-image-field label { margin: 0; }
+.uploaded-template-image-field input[type="file"] { padding: 9px; }
+.uploaded-template-image-preview { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.uploaded-template-image-preview img { width: 74px; height: 54px; object-fit: cover; border: 1px solid #d5e2f4; border-radius: 7px; }
 .uploaded-template-form-note { margin: 0 0 20px; padding: 14px 16px; border: 1px dashed #b8cbe6; border-radius: 12px; color: #5f7390; font-size: 12px; line-height: 1.5; }
 .uploaded-template-preview-panel { min-width: 0; }
 .uploaded-template-frame { position: relative; display: block; min-height: 620px; padding: 0; background: #e8eef5; }
