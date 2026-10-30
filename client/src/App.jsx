@@ -201,6 +201,19 @@ function PreviewWhatsAppFloat({ number }) {
   return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer"><span className="whatsapp-pulse" /><MessageCircle size={16} /><span><b>Chat on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={13} /></a>;
 }
 
+function submitTemplateFormToWhatsApp(event, { number, businessName, subject }) {
+  event.preventDefault();
+  const form = event.target?.tagName === 'FORM' ? event.target : event.currentTarget;
+  const fallbackKeys = ['name', 'email', 'message'];
+  const fields = Array.from(form.querySelectorAll('input, textarea, select'))
+    .map((field, index) => [field.name || fallbackKeys[index] || 'field', String(field.value || '').trim()])
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`);
+  const message = [`Hi ${businessName || 'there'},`, subject, ...fields].join('\n');
+  const href = `https://wa.me/${normalizeWhatsAppNumber(number)}?text=${encodeURIComponent(message)}`;
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
 function SiteFooterV2() {
   const navigate = useNavigate();
   return <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><button className="brand brand-light" onClick={() => navigate('/')}><span className="brand-mark">wg</span><span>web<span>guruji</span></span></button><p>Your business. Your website.<br />Made simple.</p><div className="footer-social"><button>in</button><button>ig</button><a href={`https://wa.me/${WHATSAPP_NUMBER}`} aria-label="WhatsApp">wa</a></div></div><div><b>Explore</b><a href="/templates">Templates</a><a href="/pricing">Pricing</a><a href="/#how-it-works">How it works</a><a href="/#services">Services</a></div><div><b>For businesses</b><a href="/templates?category=restaurants">Restaurants</a><a href="/templates?category=salons">Salons & beauty</a><a href="/templates?category=construction">Construction</a><a href="/templates?category=clinics">Clinics</a></div><div><b>Need help?</b><a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi Web Guruji, I would like help with my business website.')}`}>WhatsApp us</a><a href="mailto:hello@webguruji.in">hello@webguruji.in</a><a href="/#services">Deployment support</a><a href="/#faqs">FAQs</a></div></div><div className="container footer-bottom"><span>© 2026 Web Guruji. Demo templates are labelled clearly.</span><span>Privacy · Terms · Refund policy</span></div></footer>;
@@ -504,6 +517,16 @@ function CategoryWebsitePreview({ template, businessName, tagline, about, phone,
   const [viewport, setViewport] = useState('desktop');
   const [sent, setSent] = useState(false);
   const config = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
+  useEffect(() => {
+    const root = document.querySelector('.category-template-preview:not(.category-three-page-preview)');
+    if (!root) return undefined;
+    const handleSubmit = (event) => {
+      if (event.target?.tagName !== 'FORM') return;
+      submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: 'I would like to make an enquiry.' });
+    };
+    root.addEventListener('submit', handleSubmit, true);
+    return () => root.removeEventListener('submit', handleSubmit, true);
+  }, [businessName, whatsappNumber]);
   const logo = mediaPreviews.find((media) => media.section === 'logo')?.url;
   const hero = mediaPreviews.find((media) => media.section === 'hero')?.url || template.thumbnail_url;
   const aboutImage = mediaPreviews.find((media) => media.section === 'about')?.url || mediaPreviews.find((media) => !media.section)?.url || template.thumbnail_url;
@@ -517,6 +540,16 @@ function CategoryThreePagePreview({ template, businessName, tagline, about, phon
   const [viewport, setViewport] = useState('desktop');
   const [page, setPage] = useState('home');
   const [sent, setSent] = useState(false);
+  useEffect(() => {
+    const root = document.querySelector('.category-three-page-preview');
+    if (!root) return undefined;
+    const handleSubmit = (event) => {
+      if (event.target?.tagName !== 'FORM') return;
+      submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: 'I would like to make an enquiry.' });
+    };
+    root.addEventListener('submit', handleSubmit, true);
+    return () => root.removeEventListener('submit', handleSubmit, true);
+  }, [businessName, whatsappNumber]);
   const config = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
   const content = categoryContent || {};
   const logo = mediaPreviews.find((media) => media.section === 'logo')?.url;
@@ -590,6 +623,16 @@ function FullWebsitePreview({ template, businessName, tagline, about, phone, wha
 
 function MaisonAurelePreviewStatic({ businessName, tagline, about, phone, email, city, address, hours, ctaLabel, whatsappNumber, viewport, setViewport }) {
   const [booked, setBooked] = useState(false);
+  useEffect(() => {
+    const root = document.querySelector('.maison-preview-panel');
+    if (!root) return undefined;
+    const handleSubmit = (event) => {
+      if (event.target?.tagName !== 'FORM') return;
+      submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: 'I would like to request a table reservation.' });
+    };
+    root.addEventListener('submit', handleSubmit, true);
+    return () => root.removeEventListener('submit', handleSubmit, true);
+  }, [businessName, whatsappNumber]);
   const submitReservation = (event) => { event.preventDefault(); setBooked(true); };
   return <div className="builder-preview full-site-preview-panel maison-preview-panel"><div className="preview-toolbar"><span>Maison Aurele template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className="maison-preview-site"><header className="maison-preview-nav"><div><b>{businessName}</b><small>Paris · Est. 2014</small></div><nav><span>Home</span><span>About</span><span>Menu</span><span>Gallery</span><button>{ctaLabel}</button></nav></header><section className="maison-preview-hero" style={{ backgroundImage: `linear-gradient(180deg, rgba(12,16,13,.18), rgba(12,16,13,.84)), url(${maisonAureleHero})` }}><div><small>MICHELIN-STARRED · CONTEMPORARY FRENCH</small><h2>An Experience <em>Beyond</em> Taste.</h2><p>{about || 'Twelve tables. One seasonal tasting menu. An evening composed with patience, precision and the finest produce of France.'}</p><div><button>{ctaLabel} <ArrowRight size={11} /></button><button className="maison-preview-ghost">Explore menu <ArrowRight size={11} /></button></div></div></section><section className="maison-preview-about"><div><img src={maisonInterior} alt="Candlelit dining room" /></div><div><small>OUR STORY</small><h3>A house built on <em>quiet</em> obsession.</h3><p>Founded by Chef Julien Aurele in a former 19th-century atelier, our dining room was conceived as a place where time slows and every detail is considered.</p><p>We cook with what the season gives - line-caught fish from Brittany, herbs from our own garden in the Loire - and serve it with the warmth of a private home.</p></div></section><section className="maison-preview-menu"><div className="maison-preview-heading"><div><small>SIGNATURE MENU</small><h3>Plates of the season.</h3></div><p>A glimpse of our autumn tasting menu - nine courses, each a small story.</p></div><div className="maison-dish-grid">{[[maisonDish1, 'Hokkaido Scallop', 'Beurre blanc, Oscietra caviar, garden herbs', '€38'], [maisonDish3, 'Brittany Lobster', 'Butter-poached tail, saffron emulsion, amaranth', '€64'], [maisonDish2, 'Grand Cru Sphere', 'Valrhona chocolate, cocoa soil, 24k gold leaf', '€24']].map(([image, name, description, price]) => <article key={name}><img src={image} alt={name} /><div><h4>{name}</h4><b>{price}</b></div><p>{description}</p></article>)}</div></section><section className="maison-preview-chef"><img src={maisonChef} alt="Chef plating a dish" /><div><small>CHEF'S SPECIAL</small><h3>“Simplicity is the <em>final</em> refinement.”</h3><p>Chef Julien's philosophy is restraint: three elements on a plate, each allowed to speak clearly.</p><span>- Julien Aurele, Chef Patron</span><img src={maisonAmuse} alt="Amuse bouche" /></div></section><section className="maison-preview-gallery"><small>GALLERY</small><h3>Moments at the table.</h3><div>{[[maisonWine, 'Wine being poured'], [maisonDish1, 'Scallop dish'], [maisonInterior, 'Dining room'], [maisonDish2, 'Chocolate dessert'], [maisonAmuse, 'Amuse bouche'], [maisonDish3, 'Lobster dish']].map(([image, alt]) => <img key={alt} src={image} alt={alt} />)}</div></section><section className="maison-preview-reserve"><div><small>RESERVATIONS</small><h3>Reserve your <em>evening.</em></h3><p>Tables are released thirty days in advance. For parties larger than eight or private dining, please call us directly.</p></div><div>{booked ? <div className="maison-preview-success"><small>REQUEST RECEIVED</small><h4>Merci, your table request is on its way.</h4><button onClick={() => setBooked(false)}>Make another booking</button></div> : <form onSubmit={submitReservation}><label>Name<input name="name" required placeholder="Full name" /></label><label>Email<input name="email" type="email" required placeholder="you@email.com" /></label><div><label>Date<input name="date" type="date" required /></label><label>Time<select name="time" defaultValue="" required><option value="" disabled>Select</option><option>18:30</option><option>19:00</option><option>19:30</option><option>20:00</option><option>20:30</option><option>21:00</option></select></label></div><div><label>Guests<select name="guests" defaultValue="2"><option>2 guests</option><option>4 guests</option><option>6 guests</option><option>8 guests</option></select></label><label>Phone<input name="phone" required placeholder="+33" /></label></div><label>Special requests<textarea name="specialRequests" rows="3" placeholder="Allergies, celebrations or seating preferences" /></label><button type="submit">Reserve now <ArrowRight size={12} /></button></form>}</div></section><section className="maison-preview-contact"><div><small>VISIT US</small><h3>Find your way to us.</h3><p>{address || '14 Rue du Faubourg Saint-Honore'}<br />{city || '75008 Paris, France'}</p></div><div><small>CONTACT</small><p>{phone || '+33 1 42 00 00 00'}<br />{email || 'bonsoir@maisonaurele.com'}</p><p>{hours || 'Tuesday - Saturday · Dinner 18:30 - 23:00'}</p></div></section><footer className="maison-preview-footer"><b>{businessName}</b><span>Contemporary French fine dining</span></footer></div><PreviewWhatsAppFloat number={whatsappNumber} /></div></div>;
 }
