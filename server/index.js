@@ -337,7 +337,8 @@ app.get('/api/v1/templates', async (req, res) => {
   if (req.query.type && req.query.type !== 'All') { where += ' AND t.type = ?'; values.push(req.query.type); }
   if (req.query.search) { where += ' AND (t.name LIKE ? OR t.description LIKE ? OR c.name LIKE ?)'; values.push(`%${req.query.search}%`, `%${req.query.search}%`, `%${req.query.search}%`); }
   const [rows] = await pool.query(`SELECT t.*, c.name AS category_name, c.slug AS category_slug FROM templates t JOIN categories c ON c.id = t.category_id ${where} ORDER BY t.featured DESC, t.created_at DESC`, values);
-  res.json(rows.map((row) => ({ ...row, features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features, form_schema: typeof row.form_schema === 'string' ? JSON.parse(row.form_schema) : (row.form_schema || []), preview_url: row.template_path || null })));
+  const restaurantFallback = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=85';
+  res.json(rows.map((row) => ({ ...row, thumbnail_url: row.category_slug === 'restaurants' && (!row.thumbnail_url || String(row.thumbnail_url).includes('photo-1497366754035-f200968a6e72')) ? restaurantFallback : row.thumbnail_url, features: typeof row.features === 'string' ? JSON.parse(row.features) : row.features, form_schema: typeof row.form_schema === 'string' ? JSON.parse(row.form_schema) : (row.form_schema || []), preview_url: row.template_path || null })));
 });
 
 app.get('/api/v1/packages', (_req, res) => res.json([
@@ -644,8 +645,13 @@ app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('f
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.writeFile(destination, file.buffer);
   }
-  const thumbnailFile = relativePaths.find((filePath) => /\.(png|jpe?g|webp|gif)$/i.test(filePath));
-  const thumbnailUrl = thumbnailFile ? `/template-assets/${slug}/${thumbnailFile}` : 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85';
+  const thumbnailFile = relativePaths.find((filePath) => /\.(png|jpe?g|webp|gif)$/i.test(filePath) && /(hero|cover|banner|thumbnail|featured)/i.test(filePath)) || relativePaths.find((filePath) => /\.(png|jpe?g|webp|gif)$/i.test(filePath));
+  const entryFile = req.files.find((_file, index) => relativePaths[index] === entryPath);
+  const embeddedImage = entryFile?.buffer.toString('utf8').match(/https?:\/\/images\.unsplash\.com\/[^"'\s)]+/i)?.[0];
+  const categoryFallbackThumbnail = category.slug === 'restaurants'
+    ? 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=85'
+    : 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85';
+  const thumbnailUrl = thumbnailFile ? `/template-assets/${slug}/${thumbnailFile}` : (embeddedImage || categoryFallbackThumbnail);
   const templatePath = `/template-assets/${slug}/${entryPath}`;
   const values = [category.id, name, description, Math.max(1, Number(pages) || 1), type === 'Dynamic' ? 'Dynamic' : 'Static', Math.max(0, Number(price) || 0), ['true', '1', 'on'].includes(String(featured).toLowerCase()), thumbnailUrl, 'custom', JSON.stringify(['Uploaded HTML template', 'Customer form fields', 'Live preview']), templatePath, JSON.stringify(parsedFormSchema)];
   const templateId = existing?.id;
