@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import maisonAureleHero from './assets/maison-aurele-hero.jpg';
@@ -44,7 +44,229 @@ const categories = [
   { name: 'Professional', slug: 'professional-services', icon: '↗', description: 'A sharp home for your expertise.', color: '#475569' }
 ];
 
+const categoryImagePool = [
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=82'
+];
+
+const extendedCategories = [
+  ['Restaurants', 'restaurants', 'Menus, bookings and neighbourhood love.', '#F28C28'],
+  ['Cafes & Coffee', 'cafes-coffee', 'Warm spaces for daily rituals and good coffee.', '#B45309'],
+  ['Bakeries', 'bakeries', 'Fresh bakes, custom cakes and local orders.', '#D97706'],
+  ['Food Trucks', 'food-trucks', 'A bold mobile home for your street-food brand.', '#EA580C'],
+  ['Catering', 'catering', 'Turn menus and enquiries into booked events.', '#C2410C'],
+  ['Bars & Nightlife', 'bars-nightlife', 'Drinks, events and late-night energy.', '#7C3AED'],
+  ['Hotels & Resorts', 'hotels-resorts', 'Show rooms, amenities and direct bookings.', '#0369A1'],
+  ['Homestays', 'homestays', 'A welcoming digital front door for your stay.', '#0F766E'],
+  ['Travel Agencies', 'travel-agencies', 'Sell journeys with clarity and confidence.', '#0284C7'],
+  ['Tour Guides', 'tour-guides', 'Local knowledge packaged for the next adventure.', '#15803D'],
+  ['Salons & Beauty', 'salons', 'Service-led spaces with a softer edge.', '#D94680'],
+  ['Spas', 'spas', 'Slow down, book easily and feel looked after.', '#BE185D'],
+  ['Barbershops', 'barbershops', 'A sharp booking experience for your chair.', '#334155'],
+  ['Makeup Artists', 'makeup-artists', 'Portfolio, packages and enquiries in one place.', '#DB2777'],
+  ['Gyms & Fitness', 'gyms-fitness', 'Motivate members and fill your classes.', '#DC2626'],
+  ['Yoga Studios', 'yoga-studios', 'A calm space for classes, teachers and bookings.', '#0F766E'],
+  ['Dance Studios', 'dance-studios', 'Make your classes easy to discover and join.', '#9333EA'],
+  ['Photographers', 'photographers', 'Let the work lead and make booking simple.', '#475569'],
+  ['Portfolios', 'portfolios', 'Motion-rich homes for designers, artists and makers.', '#575ECF'],
+  ['Videographers', 'videographers', 'Showreels, services and production enquiries.', '#1D4ED8'],
+  ['Wedding Planners', 'wedding-planners', 'A beautiful home for your celebrations.', '#BE123C'],
+  ['Event Management', 'event-management', 'Make every event detail feel considered.', '#7E22CE'],
+  ['Florists', 'florists', 'Seasonal arrangements with an easy order flow.', '#16A34A'],
+  ['Fashion Boutiques', 'fashion-boutiques', 'Curated collections with a strong point of view.', '#A21CAF'],
+  ['Jewellery', 'jewellery', 'Let your pieces shine with a premium storefront.', '#A16207'],
+  ['Retail Stores', 'retail-stores', 'A clear digital shelf for products and visits.', '#2563EB'],
+  ['E-commerce', 'ecommerce', 'Sell products with a focused, trustworthy shop.', '#1D4ED8'],
+  ['Furniture Stores', 'furniture-stores', 'Help customers imagine the piece at home.', '#92400E'],
+  ['Interior Design', 'interior-design', 'Case studies and a refined project enquiry path.', '#57534E'],
+  ['Architects', 'architects', 'A thoughtful portfolio for spaces and ideas.', '#334155'],
+  ['Construction', 'construction', 'Show the work behind the work.', '#2563EB'],
+  ['Manufacturing', 'manufacturing', 'Precision-led websites for factories, machinery and engineering teams.', '#0F4C81'],
+  ['Plumbers', 'plumbers', 'Get urgent service enquiries to the right place.', '#0369A1'],
+  ['Electricians', 'electricians', 'Reliable local service with clear next steps.', '#CA8A04'],
+  ['Solar Energy', 'solar-energy', 'Explain clean energy and convert new enquiries.', '#16A34A'],
+  ['Landscapers', 'landscapers', 'Outdoor spaces, before-and-afters and quotes.', '#15803D'],
+  ['Auto Services', 'auto-services', 'Bookings, services and trust for your garage.', '#475569'],
+  ['Car Dealers', 'car-dealers', 'Put the right vehicles in front of buyers.', '#1E40AF'],
+  ['Real Estate', 'real-estate', 'Put the right properties forward.', '#7C3AED'],
+  ['Property Management', 'property-management', 'A dependable home for owners and residents.', '#4338CA'],
+  ['Legal Services', 'legal-services', 'Make specialist guidance easier to understand.', '#1E3A8A'],
+  ['Accounting & Tax', 'accounting-tax', 'Clear expertise for confident business decisions.', '#047857'],
+  ['Consultants', 'consultants', 'A sharp home for your expertise.', '#475569'],
+  ['Marketing Agencies', 'marketing-agencies', 'Turn proof and ideas into better leads.', '#C026D3'],
+  ['IT Services', 'it-services', 'Make technical capability easy to trust.', '#2563EB'],
+  ['Software Startups', 'software-startups', 'Explain the product and move visitors to action.', '#4F46E5'],
+  ['Education & Coaching', 'education-coaching', 'Teach clearly, build trust and fill programmes.', '#0F766E'],
+  ['Schools', 'schools', 'A helpful digital welcome for students and families.', '#1D4ED8'],
+  ['Childcare', 'childcare', 'A warm, reassuring presence for growing families.', '#EA580C'],
+  ['Clinics', 'clinics', 'Clear, calm and easy to trust.', '#0F766E'],
+  ['Dentists', 'dentists', 'Appointments and care information without friction.', '#0891B2'],
+  ['Hospitals', 'hospitals', 'Important care information with a clear structure.', '#0369A1'],
+  ['Physiotherapy', 'physiotherapy', 'Help people understand recovery and book care.', '#16A34A'],
+  ['Mental Health', 'mental-health', 'A calm, respectful path to support.', '#7C3AED'],
+  ['Veterinary', 'veterinary', 'A friendly home for pets, care and appointments.', '#65A30D'],
+  ['Pharmacies', 'pharmacies', 'Helpful services, hours and local access.', '#059669'],
+  ['NGOs & Nonprofits', 'ngos', 'Share your mission and make support easy.', '#EA580C'],
+  ['Religious Organisations', 'religious-organizations', 'A welcoming hub for community and events.', '#92400E'],
+  ['Coworking Spaces', 'coworking', 'Sell the atmosphere, desks and community.', '#7C3AED'],
+  ['Logistics', 'logistics', 'A dependable online presence for moving goods.', '#334155'],
+  ['Cleaning Services', 'cleaning-services', 'Turn local intent into service enquiries.', '#0284C7'],
+  ['Professional Services', 'professional-services', 'A sharp home for your expertise.', '#475569']
+].map(([name, slug, description, color], index) => ({ name, slug, icon: String(index + 1).padStart(2, '0'), description, color, image: categoryImagePool[index % categoryImagePool.length] }));
+
+// The expanded catalog keeps every business type discoverable, while each group
+// also supplies a distinct visual language and enquiry flow for its template.
+const businessCategoryGroups = [
+  { name: 'Small & Home-Based Businesses', variant: 'warm', label: 'MADE LOCALLY · PERSONAL SERVICE', formTitle: 'Tell us what you are building.', services: ['Custom orders', 'Local delivery', 'Personal service'], names: 'Home-Based Business|Freelancers|Tailoring & Boutique|Home Bakery|Homemade Food|Tiffin Services|Candle Making|Handmade Crafts|Soap Making|Art & Painting|Gift Shop|Flower Shop|Pickle & Papad Business|Small Grocery Store|Stationery Shop|Mobile Accessories|Beauty Services at Home|Home Cleaning Services|Repair Services|Small Online Store' },
+  { name: 'Shops & Retail Businesses', variant: 'retail', label: 'SHOP · DISCOVER · BUY', formTitle: 'Help customers find the right product.', services: ['Featured products', 'Store visits', 'Order enquiries'], names: 'Grocery Store|Supermarket|Departmental Store|Clothing Store|Footwear Store|Electronics Shop|Mobile Shop|Computer Shop|Furniture Store|Hardware Store|Paint Shop|Medical Store|Cosmetics Store|Jewellery Shop|Watch Shop|Toy Shop|Gift Shop|Sports Shop|Book Store|Stationery Store|Home Decor Shop|Kitchenware Store|Automobile Accessories|Pet Shop|Organic Products Store' },
+  { name: 'Food & Restaurant Businesses', variant: 'culinary', label: 'FRESH · LOCAL · MADE WITH CARE', formTitle: 'Take a table or order enquiry.', services: ['Signature menu', 'Bookings and orders', 'Private dining'], names: 'Restaurant|Cafe|Coffee Shop|Bakery|Cake Shop|Sweet Shop|Fast Food Shop|Pizza Shop|Burger Shop|Ice Cream Parlour|Juice Centre|Food Truck|Dhaba|Family Restaurant|Fine Dining|Cloud Kitchen|Catering Services|Tiffin Centre|Street Food|Bar & Lounge' },
+  { name: 'Beauty, Fashion & Lifestyle', variant: 'editorial', label: 'STYLE · CARE · CONFIDENCE', formTitle: 'Make an appointment or enquiry.', services: ['Signature services', 'Appointments', 'Lookbook and gallery'], names: 'Beauty Salon|Hair Salon|Unisex Salon|Spa|Makeup Artist|Bridal Makeup|Nail Studio|Tattoo Studio|Fashion Boutique|Designer Clothing|Men\'s Grooming|Beauty Academy|Fashion Designer|Mehendi Artist|Skincare Clinic|Wellness Centre' },
+  { name: 'Professional & Personal Services', variant: 'blueprint', label: 'EXPERTISE · CLARITY · MOMENTUM', formTitle: 'Start a focused conversation.', services: ['Services and expertise', 'Case studies', 'Discovery call'], names: 'Digital Marketing Agency|Web Design Agency|Graphic Design Studio|SEO Agency|Advertising Agency|IT Services|Software Development|Consultancy|Business Consultant|Chartered Accountant|Tax Consultant|Legal Services|Architect|Interior Designer|Photography Studio|Videography|Event Management|Printing Services|Travel Agency|Recruitment Agency|Real Estate Consultant' },
+  { name: 'Education & Training', variant: 'learn', label: 'LEARN · PRACTISE · GROW', formTitle: 'Ask about the next batch.', services: ['Courses and programmes', 'Faculty and outcomes', 'Admissions enquiry'], names: 'School|College|Preschool|Coaching Classes|Tuition Classes|Online Classes|Computer Institute|IT Training Institute|Language Institute|Dance Academy|Music Academy|Art Classes|Yoga Classes|Skill Development Centre|Competitive Exam Coaching|Corporate Training' },
+  { name: 'Healthcare & Medical', variant: 'care', label: 'CALM · CLEAR · HUMAN CARE', formTitle: 'Request an appointment.', services: ['Treatments and care', 'Doctors and specialists', 'Appointment booking'], names: 'Hospital|Clinic|Dental Clinic|Eye Clinic|Diagnostic Centre|Pathology Lab|Physiotherapy Centre|Veterinary Clinic|Medical Store|Nursing Home|Healthcare Consultancy|Ambulance Services|Rehabilitation Centre|Dental Hospital|Multispeciality Hospital' },
+  { name: 'Construction & Industrial Businesses', variant: 'industrial', label: 'BUILD · SUPPLY · DELIVER', formTitle: 'Send your project requirement.', services: ['Capabilities', 'Projects and supply', 'Quote request'], names: 'Construction Company|Civil Contractor|Interior Contractor|Architecture Firm|Real Estate Developer|Building Material Supplier|Cement Dealer|Steel Supplier|Electrical Contractor|Plumbing Services|Manufacturing Company|Industrial Supplier|Factory|Machinery Manufacturer|Automobile Manufacturer|Packaging Company|Logistics Company|Warehouse|Engineering Company|Infrastructure Company' },
+  { name: 'Automobile & Transportation', variant: 'mobility', label: 'MOVE · MAINTAIN · GO FURTHER', formTitle: 'Book a service or ask for a quote.', services: ['Vehicle services', 'Parts and inventory', 'Booking and support'], names: 'Car Dealership|Bike Showroom|Used Car Dealer|Used Bike Dealer|Car Repair Garage|Bike Repair Shop|Car Washing Centre|Car Detailing Studio|Tyre Shop|Automobile Spare Parts|Driving School|Transport Company|Taxi Services|Bus Services|Packers & Movers|Courier Services|Logistics Services' },
+  { name: 'Agriculture & Rural Businesses', variant: 'earth', label: 'GROW · HARVEST · SUSTAIN', formTitle: 'Ask about supply and availability.', services: ['Products and produce', 'Seasonal availability', 'Farm enquiry'], names: 'Agriculture Farm|Dairy Farm|Poultry Farm|Fishery|Organic Farming|Plant Nursery|Fertilizer Shop|Seeds Store|Pesticide Shop|Tractor Dealership|Agricultural Equipment|Farm Machinery|Animal Feed Store|Food Processing|Agro Export Business' },
+  { name: 'Hospitality & Tourism', variant: 'travel', label: 'STAY · EXPLORE · REMEMBER', formTitle: 'Plan your stay or journey.', services: ['Rooms and experiences', 'Packages and tours', 'Booking enquiry'], names: 'Hotel|Resort|Guest House|Homestay|Hostel|Lodge|Travel Agency|Tour Operator|Adventure Tourism|Holiday Packages|Wedding Resort|Banquet Hall|Convention Centre|Luxury Hotel|Hospitality Group' },
+  { name: 'Entertainment, Sports & Events', variant: 'energy', label: 'PLAY · PERFORM · CELEBRATE', formTitle: 'Reserve a place or plan an event.', services: ['Classes and activities', 'Events and bookings', 'Gallery and moments'], names: 'Gym|Fitness Centre|Yoga Studio|Sports Academy|Cricket Academy|Football Academy|Dance Studio|Gaming Zone|Cinema|Event Planner|Wedding Planner|Banquet Hall|Music Studio|Production House|Amusement Park' },
+  { name: 'Large Businesses & Enterprises', variant: 'enterprise', label: 'SCALE · OPERATE · LEAD', formTitle: 'Connect with the right team.', services: ['Business divisions', 'Investor and partner relations', 'Corporate enquiry'], names: 'Corporate Company|Multinational Company|Private Limited Company|Public Limited Company|Holding Company|Franchise Business|Retail Chain|Restaurant Chain|Hospital Group|Educational Group|Real Estate Group|Manufacturing Group|Export & Import Company|Financial Services Company|Insurance Company|Banking Institution|Telecom Company|E-commerce Company|Technology Enterprise|Corporate Consulting Firm' },
+  { name: 'Online & Digital Businesses', variant: 'digital', label: 'IDEAS · PRODUCTS · EVERYWHERE', formTitle: 'Start your digital journey.', services: ['Product and platform', 'Plans and features', 'Talk to the team'], names: 'E-commerce Store|Dropshipping Business|Online Marketplace|Subscription Business|SaaS Company|Mobile App Company|Digital Products Store|Online Course Platform|Affiliate Marketing|Content Creator|Influencer Brand|YouTube Channel|Online Book Store|Digital Agency|Software Company' },
+  { name: 'Other Business Categories', variant: 'community', label: 'PEOPLE · PURPOSE · PROGRESS', formTitle: 'Tell us about your organisation.', services: ['Mission and impact', 'Programs and community', 'Contact and support'], names: 'NGO|Charity Organisation|Religious Organisation|Community Organisation|Government Services|Public Services|Clubs & Associations|Social Enterprises|Non-Profit Organisation|Other Businesses' }
+];
+
+function slugifyBusinessName(value) {
+  return value.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+const businessCategoryCatalog = businessCategoryGroups.flatMap((group, groupIndex) => group.names.split('|').map((name) => ({ ...group, name: name.trim(), slug: slugifyBusinessName(name), groupIndex })));
+const uniqueBusinessCategoryCatalog = Array.from(new Map(businessCategoryCatalog.map((item) => [item.slug, item])).values());
+const businessCategoryRows = uniqueBusinessCategoryCatalog.map((item, index) => ({ name: item.name, slug: item.slug, icon: String(index + 1).padStart(2, '0'), description: `${item.name} website with focused sections, clear enquiries and WhatsApp contact.`, color: ['#B45309', '#2563EB', '#C2410C', '#D94680', '#0F766E', '#7C3AED', '#0F766E', '#0F4C81', '#475569', '#15803D', '#0369A1', '#DC2626', '#1D4ED8', '#4F46E5', '#92400E'][item.groupIndex], image: categoryImagePool[(index + item.groupIndex) % categoryImagePool.length] }));
+const expandedCategories = Array.from(new Map([...extendedCategories, ...businessCategoryRows].map((category) => [category.slug, category])).values());
+
+const portfolioTemplate = {
+  id: 70,
+  category_name: 'Portfolios',
+  category_slug: 'portfolios',
+  name: 'Aria Kapoor · Animated Portfolio',
+  description: 'A motion-rich designer portfolio with a dark indigo canvas, editorial case studies and animated interactions.',
+  pages: 1,
+  type: 'Static',
+  price: 1000,
+  featured: 1,
+  demo: true,
+  thumbnail_url: 'https://animated-artist-canvas.lovable.app/assets/portrait-CygGq_Uj.jpg',
+  palette: 'midnight',
+  features: ['Animated hero canvas', 'Selected work gallery', 'Services and contact sections']
+};
+
+const manufacturingTemplate = {
+  id: 71,
+  category_name: 'Manufacturing',
+  category_slug: 'manufacturing',
+  name: 'Shree Gurukrupa Enterprises',
+  description: 'A precision-led industrial website for agricultural machinery components, capabilities and quote enquiries.',
+  pages: 3,
+  type: 'Dynamic',
+  price: 1500,
+  featured: 1,
+  demo: true,
+  thumbnail_url: 'https://forge-field-machinery.lovable.app/assets/factory-wide-banner-Cm8cxQHX.png',
+  palette: 'steel',
+  features: ['Industrial product catalogue', 'Capabilities and quality story', 'Request-a-quote WhatsApp form']
+};
+
+const generatedCategoryTemplates = expandedCategories
+  .filter((category) => !demoTemplates.some((template) => template.category_slug === category.slug) && !uniqueBusinessCategoryCatalog.some((item) => item.slug === category.slug) && !['portfolios', 'manufacturing'].includes(category.slug))
+  .map((category, index) => ({
+    id: 1000 + index,
+    category_name: category.name,
+    category_slug: category.slug,
+    name: `${category.name} Studio`,
+    description: `A polished one-page ${category.name.toLowerCase()} website for services, enquiries and growth.`,
+    pages: 1,
+    type: 'Static',
+    price: 1000,
+    featured: 0,
+    demo: true,
+    thumbnail_url: category.image,
+    palette: ['cobalt', 'sand', 'mint', 'rose', 'slate'][index % 5],
+    features: ['9+ editable sections', 'Responsive layout', 'WhatsApp enquiry form']
+  }));
+
+const businessVariantExtras = {
+  warm: { title: 'Made with a personal touch.', copy: 'Show the person, process and care behind every order.', items: ['Custom work', 'Local pickup', 'Personal support'] },
+  retail: { title: 'A clearer way to browse.', copy: 'Put featured products, offers and store information in one useful place.', items: ['Featured collection', 'New arrivals', 'Visit the store'] },
+  culinary: { title: 'A table worth planning for.', copy: 'Turn the menu, atmosphere and booking journey into one appetite-building story.', items: ['Seasonal menu', 'Chef story', 'Reservations'] },
+  editorial: { title: 'Style with a point of view.', copy: 'Use editorial imagery, services and appointments to make the brand feel unmistakable.', items: ['Lookbook', 'Signature service', 'Book a visit'] },
+  blueprint: { title: 'Proof before promises.', copy: 'Make expertise easier to understand with selected work, method and measurable outcomes.', items: ['Case studies', 'Capabilities', 'Discovery call'] },
+  learn: { title: 'A better way to begin learning.', copy: 'Give families and learners the context they need before they enquire or enrol.', items: ['Programmes', 'Faculty', 'Admissions'] },
+  care: { title: 'Care that feels considered.', copy: 'Keep important information calm, clear and easy to act on.', items: ['Treatments', 'Specialists', 'Appointments'] },
+  industrial: { title: 'Built for the next requirement.', copy: 'Show capability, equipment, output and a direct route to a quote.', items: ['Capabilities', 'Projects', 'Request a quote'] },
+  mobility: { title: 'Keep moving with confidence.', copy: 'Bring services, inventory and bookings together for customers on the go.', items: ['Services', 'Parts', 'Book now'] },
+  earth: { title: 'From the land to the customer.', copy: 'Tell the growing story with seasonal products, availability and trust.', items: ['What is available', 'Our farm', 'Ask about supply'] },
+  travel: { title: 'The next stay starts here.', copy: 'Let guests move from inspiration to itinerary without losing the feeling of place.', items: ['Stay', 'Experiences', 'Book a journey'] },
+  energy: { title: 'Make room for the moment.', copy: 'Bring energy, schedules, tickets and memories into a single destination.', items: ['What is on', 'Book a place', 'See the moments'] },
+  enterprise: { title: 'One system for many teams.', copy: 'Organise business divisions, proof and corporate contact paths with clarity.', items: ['Our network', 'Leadership', 'Partner with us'] },
+  digital: { title: 'Turn attention into action.', copy: 'Explain the product, show the value and move users toward the right next step.', items: ['Product', 'Plans', 'Start building'] },
+  community: { title: 'A place for people to gather.', copy: 'Make mission, programs, events and support easy to discover.', items: ['Our mission', 'Programs', 'Get involved'] }
+};
+
+const businessCategoryTemplates = uniqueBusinessCategoryCatalog
+  .filter((category) => !demoTemplates.some((template) => template.category_slug === category.slug) && !['portfolios', 'manufacturing'].includes(category.slug))
+  .map((category, index) => ({
+    id: 2000 + index,
+    category_name: category.name,
+    category_slug: category.slug,
+    name: `${category.name} · ${category.variant === 'digital' ? 'Digital Launch' : category.variant === 'industrial' ? 'Works' : category.variant === 'care' ? 'Care' : 'Studio'}`,
+    description: `${category.name} website template with a ${category.variant} visual system, business-specific sections and a WhatsApp-first enquiry journey.`,
+    pages: 1,
+    type: ['enterprise', 'digital', 'blueprint', 'industrial'].includes(category.variant) ? 'Dynamic' : 'Static',
+    price: 1000,
+    featured: index < 12 ? 1 : 0,
+    demo: true,
+    thumbnail_url: categoryImagePool[(index + category.groupIndex) % categoryImagePool.length],
+    palette: category.variant,
+    designVariant: category.variant,
+    variantLabel: category.label,
+    heroTitle: `${category.name} made clear, memorable and ready to grow.`,
+    aboutTitle: `A better digital front door for ${category.name.toLowerCase()}.`,
+    formTitle: category.formTitle,
+    serviceItems: category.services,
+    extraSection: businessVariantExtras[category.variant] || businessVariantExtras.blueprint,
+    processSteps: ['Understand the requirement', 'Shape the right plan', 'Deliver with care'],
+    features: ['9+ business-specific sections', `${category.formTitle}`, 'Official WhatsApp enquiry form']
+  }));
+
+const allDemoTemplates = [...demoTemplates, portfolioTemplate, manufacturingTemplate, ...generatedCategoryTemplates, ...businessCategoryTemplates];
+
+function mergeCatalogCategories(remoteRows = []) {
+  const merged = new Map(expandedCategories.map((category) => [category.slug, category]));
+  remoteRows.forEach((category) => {
+    const slug = category.slug || category.category_slug;
+    if (!slug) return;
+    merged.set(slug, { ...merged.get(slug), ...category, slug, name: category.name || merged.get(slug)?.name || slug });
+  });
+  return [...merged.values()];
+}
+
+function mergeCatalogTemplates(remoteRows = []) {
+  const remoteIds = new Set(remoteRows.map((template) => String(template.id)));
+  return [...remoteRows, ...allDemoTemplates.filter((template) => !remoteIds.has(String(template.id)))];
+}
+
 const categoryPreviewConfig = {
+  manufacturing: { label: 'PRECISION MANUFACTURING · MACHINERY · SUPPLY', defaultBusinessName: 'Shree Gurukrupa Enterprises', defaultTagline: 'Engineered for Performance. Built for the Field.', defaultAbout: 'Precision agricultural machinery components, tractor parts and machined engineering components from Shiroli MIDC, Kolhapur.', aboutTitle: 'Manufacturing discipline from Shiroli MIDC.', servicesTitle: 'Machining capability for working components.', serviceLabel: 'Capabilities', services: ['CNC turning and shafts', 'Milling, drilling and flanges', 'Batch staging and inspection'], showcaseTitle: 'Agricultural machinery components.', testimonial: 'Clear scope, honest specifications and a practical component focus.', faqTitle: 'Need a component built to requirement?', footerTagline: 'PRECISION · STRENGTH · RELIABILITY' },
+  portfolios: { label: 'PRODUCT DESIGN · MOTION · CRAFT', defaultBusinessName: 'Aria Kapoor', defaultTagline: 'Designing interfaces that feel alive.', defaultAbout: 'A product designer and design engineer crafting premium digital experiences, from first sketch to shipped product.', aboutTitle: 'Behind the pixels.', servicesTitle: 'What I can do for you.', serviceLabel: 'Services', services: ['Product Design', 'Design Systems', 'UX Research & Strategy'], showcaseTitle: 'Projects with a pulse.', testimonial: 'Design is how it works, not just how it looks.', faqTitle: 'A thoughtful process for complex work.', footerTagline: 'Designed and built with care.' },
   restaurants: { label: 'CONTEMPORARY FRENCH RESTAURANT', defaultBusinessName: 'Maison Aurele', defaultTagline: 'An experience beyond taste.', defaultAbout: 'A contemporary fine-dining restaurant offering seasonal tasting menus, a curated cellar and intimate evenings.', aboutTitle: 'A considered table for memorable evenings.', servicesTitle: 'Everything is prepared with intention.', serviceLabel: 'Menu & hospitality', services: ['Seasonal tasting menus', 'Curated private dining', 'Reservations made easy'], showcaseTitle: 'A closer look at the table.', testimonial: '“Every detail felt personal, warm and beautifully considered.”', faqTitle: 'Good to know before you visit.', footerTagline: 'Contemporary French fine dining' },
   salons: { label: 'MODERN BEAUTY & WELLNESS STUDIO', defaultBusinessName: 'Mira Studio', defaultTagline: 'Your time, beautifully considered.', defaultAbout: 'A thoughtful beauty studio offering considered cuts, colour, skin rituals and a slower kind of self-care.', aboutTitle: 'A studio designed around your time.', servicesTitle: 'Small rituals. Visible results.', serviceLabel: 'Our services', services: ['Cuts and colour', 'Skin and beauty rituals', 'Bridal and event styling'], showcaseTitle: 'The details make the difference.', testimonial: '“I left feeling lighter, more confident, and completely looked after.”', faqTitle: 'Your visit, made simple.', footerTagline: 'Beauty, care and confidence' },
   construction: { label: 'ARCHITECTURE · BUILD · CRAFT', defaultBusinessName: 'Form & Foundation', defaultTagline: 'Built for the way you live.', defaultAbout: 'A project-led construction studio delivering thoughtful spaces, dependable execution and work that lasts.', aboutTitle: 'Strong ideas, carefully built.', servicesTitle: 'From first line to final detail.', serviceLabel: 'Capabilities', services: ['Residential construction', 'Commercial fit-outs', 'Renovation and restoration'], showcaseTitle: 'Work with a point of view.', testimonial: '“Clear communication, exceptional craft, and a result we are proud to live with.”', faqTitle: 'Planning your next project.', footerTagline: 'Crafted spaces. Considered work.' },
@@ -88,6 +310,8 @@ function SEOManager({ templates }) {
       construction: 'construction website template, builder website design India, contractor portfolio website',
       clinics: 'clinic website template, healthcare website design India, doctor appointment website',
       'real-estate': 'real estate website template, property website design India, real estate lead website',
+      portfolios: 'portfolio website template, designer portfolio website, creative portfolio website India, animated portfolio website',
+      manufacturing: 'manufacturing website template, industrial website design India, machinery components website, factory website',
       'professional-services': 'consulting website template, professional services website India, business portfolio website'
     };
     const page = path === '/' ? {
@@ -165,24 +389,26 @@ function openServiceWhatsApp(serviceName) {
 }
 
 function App() {
-  const [templates, setTemplates] = useState(demoTemplates);
-  const [categoriesData, setCategoriesData] = useState(categories);
+  const [templates, setTemplates] = useState(allDemoTemplates);
+  const [categoriesData, setCategoriesData] = useState(expandedCategories);
   const [accountOpen, setAccountOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [language, setLanguage] = useState('en');
 
   useEffect(() => {
     Promise.all([fetch(`${API}/templates`).then((r) => r.ok ? r.json() : Promise.reject()), fetch(`${API}/categories`).then((r) => r.ok ? r.json() : Promise.reject())])
-      .then(([templateRows, categoryRows]) => { if (templateRows.length) setTemplates(templateRows); if (categoryRows.length) setCategoriesData(categoryRows); })
+      .then(([templateRows, categoryRows]) => { if (templateRows.length) setTemplates(mergeCatalogTemplates(templateRows)); if (categoryRows.length) setCategoriesData(mergeCatalogCategories(categoryRows)); })
       .catch(() => undefined);
   }, []);
 
   const showToast = (message) => { if (message.endsWith(' enquiry started')) return openServiceWhatsApp(message.replace(' enquiry started', '')); setToast(message); window.setTimeout(() => setToast(''), 3400); };
   return <>
-    <SiteChrome onAccount={() => setAccountOpen(true)} />
+    <SiteChrome onAccount={() => setAccountOpen(true)} language={language} onLanguageChange={setLanguage} />
+    <MarathiTranslator language={language} />
     <SEOManager templates={templates} />
     <Routes>
       <Route path="/" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
-      <Route path="/templates" element={<Marketplace templates={templates} categories={categoriesData} />} />
+      <Route path="/templates" element={<MarketplaceEnhanced templates={templates} categories={categoriesData} />} />
       <Route path="/pricing" element={<Pricing onToast={showToast} />} />
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/builder/:templateId" element={<BuilderV4 templates={templates} onToast={showToast} />} />
@@ -197,29 +423,271 @@ function App() {
   </>;
 }
 
-function SiteChrome({ onAccount }) {
+function SiteChrome({ onAccount, language, onLanguageChange }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const go = (path) => { navigate(path); setMobileOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   return <>
     <div className="announcement"><Sparkles size={14} /> Build your business website with transparent pricing. <button onClick={() => go('/pricing')}>Compare packages <ArrowUpRight size={13} /></button></div>
-    <header className="site-header">
+      <header className="site-header">
       <div className="container nav-shell">
         <button className="brand" onClick={() => go('/')} aria-label="WebBasket home"><span className="brand-mark">WebBasket</span><span>web<span>basket</span></span></button>
         <nav className={`nav-links ${mobileOpen ? 'open' : ''}`}>
+          <button className={location.pathname === '/' ? 'active' : ''} onClick={() => go('/')}>Home</button>
+          <a href="/#features" onClick={() => setMobileOpen(false)}>Features</a>
           <button className={location.pathname === '/templates' ? 'active' : ''} onClick={() => go('/templates')}>Templates</button>
-          <a href="/#categories" onClick={() => setMobileOpen(false)}>Categories</a>
           <button className={location.pathname === '/pricing' ? 'active' : ''} onClick={() => go('/pricing')}>Pricing</button>
-          <a href="/#how-it-works" onClick={() => setMobileOpen(false)}>How it works</a>
-          <a href="/services" onClick={() => setMobileOpen(false)}>Services</a>
+          <a href="/#about" onClick={() => setMobileOpen(false)}>About</a>
+          <a href="/#contact" onClick={() => setMobileOpen(false)}>Contact</a>
+          <button className="mobile-language" onClick={() => onLanguageChange(language === 'mr' ? 'en' : 'mr')}>{language === 'mr' ? 'English' : 'मराठी'}</button>
           <button className="mobile-login" onClick={() => { onAccount(); setMobileOpen(false); }}>Log in</button>
         </nav>
-        <div className="nav-actions"><button className="login-link" onClick={onAccount}>Log in</button><button className="button button-dark button-small" onClick={() => go('/templates')}>Build my website <ArrowRight size={15} /></button></div>
+        <div className="nav-actions"><button className="language-switcher" onClick={() => onLanguageChange(language === 'mr' ? 'en' : 'mr')} aria-label="Change website language">{language === 'mr' ? 'English' : 'मराठी'}</button><button className="login-link" onClick={onAccount}>Log in</button><button className="button button-orange button-small" onClick={() => go('/templates')}>Get started free <ArrowRight size={15} /></button></div>
         <button className="icon-button menu-button" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">{mobileOpen ? <X /> : <Menu />}</button>
       </div>
     </header>
   </>;
+}
+
+function MarketplaceEnhanced({ templates, categories: categoryRows }) {
+  const availableCategories = categoryRows?.length ? categoryRows : expandedCategories;
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+  const [type, setType] = useState('All');
+  const [sort, setSort] = useState('Featured');
+  const [mobileFilters, setMobileFilters] = useState(false);
+  const location = useLocation();
+  const selectedCategory = availableCategories.find((item) => item.slug === category);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get('category');
+    if (query && availableCategories.some((item) => item.slug === query)) setCategory(query);
+  }, [location.search, availableCategories]);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const matches = templates.filter((template) => {
+      const haystack = `${template.name} ${template.description} ${template.category_name} ${template.category_slug}`.toLowerCase();
+      return (!query || haystack.includes(query)) && (category === 'All' || template.category_slug === category) && (type === 'All' || template.type === type);
+    });
+    return [...matches].sort((a, b) => sort === 'Price: low to high' ? Number(a.price) - Number(b.price) : sort === 'Price: high to low' ? Number(b.price) - Number(a.price) : sort === 'Newest' ? Number(b.id) - Number(a.id) : Number(b.featured || 0) - Number(a.featured || 0));
+  }, [templates, search, category, type, sort]);
+
+  const visibleCategories = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return availableCategories.filter((item) => !query || `${item.name} ${item.description} ${item.slug}`.toLowerCase().includes(query));
+  }, [availableCategories, search]);
+
+  const selectCategory = (slug) => {
+    setCategory(slug);
+    setMobileFilters(false);
+    window.requestAnimationFrame(() => document.querySelector('.marketplace-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const resetFilters = () => { setCategory('All'); setType('All'); setSort('Featured'); setSearch(''); };
+
+  return <main className="marketplace-page section-pad"><div className="container">
+    <nav className="marketplace-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><ChevronDown size={13} /><span>Templates</span>{selectedCategory && <><ChevronDown size={13} /><b>{selectedCategory.name}</b></>}</nav>
+    <div className="marketplace-hero"><div><div className="eyebrow">The marketplace · 200+ business categories</div><h1>Find a better starting point<br /><em>for your website.</em></h1><p>Explore polished templates for restaurants, professionals, local services, healthcare, retail and more. Search by category, compare layouts, and open a live preview before you decide.</p></div><div className="marketplace-note"><Sparkles size={16} /><span><b>Built for Indian businesses.</b><br />Every category includes a responsive starter with WhatsApp-ready enquiries.</span></div></div>
+    <section className="category-directory"><div className="category-directory-heading"><div><div className="eyebrow">Browse by business</div><h2>One useful home for every kind of work.</h2></div><span>{availableCategories.length} categories</span></div><div className="category-directory-grid">{visibleCategories.map((item) => { const count = templates.filter((template) => template.category_slug === item.slug).length; return <button key={item.slug} className={`category-directory-card ${category === item.slug ? 'selected' : ''}`} style={{ backgroundImage: `linear-gradient(135deg, rgba(9,25,57,.9), rgba(9,25,57,.28)), url(${item.image || categoryImagePool[0]})` }} onClick={() => selectCategory(item.slug)}><span>{item.icon}</span><strong>{item.name}</strong><small>{count} template{count === 1 ? '' : 's'}</small></button>; })}</div>{!visibleCategories.length && <div className="category-directory-empty">No categories match “{search}”. Try another business type.</div>}</section>
+    <div className="marketplace-toolbar"><div className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search 60 categories or templates..." aria-label="Search categories and templates" /></div><button className="filter-toggle" onClick={() => setMobileFilters(!mobileFilters)}><SlidersHorizontal size={16} /> Filters</button><div className="result-count">{filtered.length} templates · {visibleCategories.length} categories</div></div>
+    <div className="marketplace-layout"><aside className={`filter-panel ${mobileFilters ? 'visible' : ''}`}><div className="filter-header"><b>Filter templates</b><button onClick={resetFilters}>Reset</button></div><label>Business category</label><div className="filter-list"><button className={category === 'All' ? 'selected' : ''} onClick={() => selectCategory('All')}>All categories <span>{templates.length}</span></button>{availableCategories.map((item) => { const count = templates.filter((template) => template.category_slug === item.slug).length; return <button key={item.slug} className={category === item.slug ? 'selected' : ''} onClick={() => selectCategory(item.slug)}>{item.name}<span>{count}</span></button>; })}</div><label>Website type</label><div className="segmented"><button className={type === 'All' ? 'selected' : ''} onClick={() => setType('All')}>All</button><button className={type === 'Static' ? 'selected' : ''} onClick={() => setType('Static')}>Static</button><button className={type === 'Dynamic' ? 'selected' : ''} onClick={() => setType('Dynamic')}>Dynamic</button></div><div className="filter-help"><CircleHelp size={16} /><span>Every starter is responsive, editable, and priced in rupees. Custom functionality can be added after the preview.</span></div></aside><div className="marketplace-results"><div className="results-top"><span>Showing {filtered.length} of {templates.length} templates{selectedCategory ? ` · ${selectedCategory.name}` : ''}</span><label className="sort-control">Sort<select value={sort} onChange={(e) => setSort(e.target.value)}><option>Featured</option><option>Newest</option><option>Price: low to high</option><option>Price: high to low</option></select><ChevronDown size={13} /></label></div>{filtered.length ? <div className="template-grid">{filtered.map((template, index) => <TemplateCard key={template.id} template={template} index={index} />)}</div> : <div className="empty-state"><Search size={24} /><h3>No templates found</h3><p>Try a different category or clear your search.</p><button className="button button-dark" onClick={resetFilters}>Clear filters</button></div>}</div></div>
+  </div></main>;
+}
+
+const MARATHI_TRANSLATIONS = {
+  'Build your business website with transparent pricing.': 'पारदर्शक किमतीत तुमची व्यवसाय वेबसाइट तयार करा.',
+  'Compare packages': 'पॅकेजची तुलना करा',
+  Home: 'मुख्यपृष्ठ',
+  Features: 'वैशिष्ट्ये',
+  Templates: 'टेम्पलेट्स',
+  Pricing: 'किंमत',
+  About: 'आमच्याबद्दल',
+  Contact: 'संपर्क',
+  'Log in': 'लॉग इन',
+  'Get started free': 'मोफत सुरू करा',
+  'All-in-one website builder': 'सर्व सुविधा असलेला वेबसाइट बिल्डर',
+  'Your business': 'तुमचा व्यवसाय',
+  'deserves a': 'यासाठी योग्य आहे',
+  'better website.': 'उत्तम वेबसाइट.',
+  'Create a polished website, grow your brand, and get more customers with WebBasket—the easy, powerful, and affordable website builder for Indian businesses.': 'WebBasket सोबत आकर्षक वेबसाइट तयार करा, तुमचा ब्रँड वाढवा आणि अधिक ग्राहक मिळवा—भारतीय व्यवसायांसाठी सोपा, शक्तिशाली आणि परवडणारा वेबसाइट बिल्डर.',
+  'Drag & drop builder': 'ड्रॅग आणि ड्रॉप बिल्डर',
+  '100+ modern templates': '१००+ आधुनिक टेम्पलेट्स',
+  'Lightning-fast performance': 'अतिशय जलद परफॉर्मन्स',
+  'Mobile-friendly design': 'मोबाइलसाठी योग्य डिझाइन',
+  'SEO-ready for growth': 'वाढीसाठी SEO तयार',
+  'Secure & reliable': 'सुरक्षित आणि विश्वासार्ह',
+  'Start building free': 'मोफत तयार करायला सुरुवात करा',
+  'See how it works': 'हे कसे काम करते ते पहा',
+  Build: 'तयार करा',
+  Grow: 'वाढवा',
+  Succeed: 'यशस्वी व्हा',
+  'Trusted by': 'विश्वास ठेवणारे',
+  '10,000+ businesses': '१०,०००+ व्यवसाय',
+  'Launch in': 'लॉन्च करा',
+  'minutes, not weeks': 'आठवडे नाही, काही मिनिटांत',
+  '24/7 expert support': '२४/७ तज्ज्ञ मदत',
+  '99.9% reliable': '९९.९% विश्वासार्ह',
+  'LAUNCH WITHOUT THE WAIT': 'प्रतीक्षा न करता लॉन्च करा',
+  'A premium first impression, ready today.': 'आजच तयार होणारी प्रीमियम पहिली छाप.',
+  'Choose a polished starting point, add your story, and preview every detail before you pay.': 'सुंदर सुरुवातीचे टेम्पलेट निवडा, तुमची माहिती जोडा आणि पेमेंटपूर्वी प्रत्येक तपशील पहा.',
+  'Explore templates': 'टेम्पलेट्स पहा',
+  'MADE FOR LOCAL BUSINESS': 'स्थानिक व्यवसायांसाठी तयार',
+  'Your best work deserves a better home.': 'तुमच्या उत्तम कामासाठी उत्तम डिजिटल घर.',
+  'See categories': 'श्रेणी पहा',
+  'SIMPLE. TRANSPARENT. YOURS.': 'सोपे. पारदर्शक. तुमचे.',
+  'Good design without the agency drama.': 'एजन्सीच्या गुंतागुंतीशिवाय उत्तम डिझाइन.',
+  'Start with your world': 'तुमच्या व्यवसायापासून सुरुवात करा',
+  'What kind of website do you need?': 'तुम्हाला कोणत्या प्रकारची वेबसाइट हवी आहे?',
+  'View all templates': 'सर्व टेम्पलेट्स पहा',
+  'The template shelf': 'टेम्पलेट्सचा संग्रह',
+  'Find your perfect starting point': 'तुमची योग्य सुरुवात शोधा',
+  'Browse marketplace': 'मार्केटप्लेस पहा',
+  'A simpler way to start': 'सुरुवात करण्याचा सोपा मार्ग',
+  'From blank page to business-ready.': 'रिकाम्या पानापासून व्यवसायासाठी तयार वेबसाइटपर्यंत.',
+  'Choose a template': 'टेम्पलेट निवडा',
+  'Add your details': 'तुमची माहिती जोडा',
+  'Preview your website': 'तुमच्या वेबसाइटचा प्रिव्ह्यू पहा',
+  'Get your website': 'तुमची वेबसाइट मिळवा',
+  'Straightforward packages': 'सोपे आणि स्पष्ट पॅकेज',
+  'A clear price for a clear beginning.': 'स्पष्ट सुरुवातीसाठी स्पष्ट किंमत.',
+  'When you need a little more': 'जेव्हा तुम्हाला अधिक मदत हवी असेल',
+  'Useful services, clearly scoped.': 'स्पष्ट व्याप्ती असलेल्या उपयुक्त सेवा.',
+  'Ready when you are': 'तुम्ही तयार असाल तेव्हा आम्ही तयार आहोत',
+  'Ready to take your business online?': 'तुमचा व्यवसाय ऑनलाइन आणण्यासाठी तयार आहात?',
+  'Explore website templates': 'वेबसाइट टेम्पलेट्स पहा',
+  'The marketplace': 'मार्केटप्लेस',
+  'A better starting point': 'तुमच्या वेबसाइटसाठी',
+  'for your website.': 'एक उत्तम सुरुवात.',
+  'Filter templates': 'टेम्पलेट्स फिल्टर करा',
+  Reset: 'रीसेट',
+  'All categories': 'सर्व श्रेणी',
+  'Website type': 'वेबसाइटचा प्रकार',
+  All: 'सर्व',
+  Static: 'स्टॅटिक',
+  Dynamic: 'डायनॅमिक',
+  'No templates found': 'टेम्पलेट्स सापडले नाहीत',
+  'Clear filters': 'फिल्टर काढा',
+  'Clear scope, fair starting points': 'स्पष्ट व्याप्ती, योग्य सुरुवातीची किंमत',
+  'Pick the pace that fits': 'तुमच्यासाठी योग्य पॅकेज निवडा',
+  'your next chapter.': 'तुमच्या पुढील टप्प्यासाठी.',
+  'Recommended': 'शिफारस केलेले',
+  'starting': 'सुरुवातीपासून',
+  'Choose this package': 'हे पॅकेज निवडा',
+  'No surprise charges.': 'अचानक अतिरिक्त शुल्क नाही.',
+  'Optional services': 'ऐच्छिक सेवा',
+  'Bring in help when you need it.': 'गरज असेल तेव्हा मदत घ्या.',
+  'Website services for growing businesses': 'वाढणाऱ्या व्यवसायांसाठी वेबसाइट सेवा',
+  'Bring in help': 'गरज असेल तेव्हा',
+  'when you need it.': 'मदत घ्या.',
+  'Ask about it': 'याबद्दल विचारा',
+  'Get a recommendation': 'शिफारस मिळवा',
+  'Your website workspace': 'तुमचे वेबसाइट वर्कस्पेस',
+  'Welcome back.': 'पुन्हा स्वागत आहे.',
+  'Start building.': 'तयार करायला सुरुवात करा.',
+  'Email address': 'ईमेल पत्ता',
+  'Continue with email': 'ईमेलने पुढे जा',
+  'Create workspace': 'वर्कस्पेस तयार करा',
+  'New here? Create an account': 'नवीन आहात? खाते तयार करा',
+  'Already have an account? Log in': 'आधीच खाते आहे? लॉग इन करा',
+  'Your business. Your website.': 'तुमचा व्यवसाय. तुमची वेबसाइट.',
+  'Made simple.': 'सोपे केले आहे.',
+  Explore: 'एक्सप्लोर',
+  'For businesses': 'व्यवसायांसाठी',
+  'Need help?': 'मदत हवी आहे?',
+  'WhatsApp us': 'WhatsApp वर संपर्क करा',
+  'Deployment support': 'डिप्लॉयमेंट मदत',
+  FAQs: 'वारंवार विचारले जाणारे प्रश्न',
+  'Talk to us on WhatsApp': 'WhatsApp वर आमच्याशी बोला',
+  'Usually the fastest way to start': 'सुरुवात करण्याचा सर्वात जलद मार्ग',
+  'Chat on WhatsApp': 'WhatsApp वर चॅट करा',
+  'One form, full website': 'एक फॉर्म, पूर्ण वेबसाइट',
+  'Every section starts here.': 'प्रत्येक सेक्शनची सुरुवात इथून होते.',
+  'Business name': 'व्यवसायाचे नाव',
+  'Logo image': 'लोगो इमेज',
+  'Tagline': 'टॅगलाइन',
+  'Hero image': 'हिरो इमेज',
+  'About / story': 'आमच्याबद्दल / गोष्ट',
+  Phone: 'फोन',
+  Email: 'ईमेल',
+  'WhatsApp number': 'WhatsApp नंबर',
+  City: 'शहर',
+  'Opening hours': 'कामकाजाची वेळ',
+  Address: 'पत्ता',
+  'Map embed/link': 'नकाशा लिंक',
+  'Primary button text': 'मुख्य बटणाचा मजकूर',
+  Package: 'पॅकेज',
+  'Pay and get website': 'पेमेंट करा आणि वेबसाइट मिळवा',
+  'Live preview': 'लाइव्ह प्रिव्ह्यू',
+  Desktop: 'डेस्कटॉप',
+  Tablet: 'टॅबलेट',
+  Mobile: 'मोबाइल',
+  'Preview ready': 'प्रिव्ह्यू तयार आहे',
+  'Payment cancelled. Your order is still pending.': 'पेमेंट रद्द झाले. तुमची ऑर्डर अद्याप प्रलंबित आहे.',
+  'Payment verified. Your source code is being prepared.': 'पेमेंट पडताळले आहे. तुमचा सोर्स कोड तयार केला जात आहे.',
+  'Admin authentication required.': 'अॅडमिन प्रमाणीकरण आवश्यक आहे.',
+  'Protected console': 'सुरक्षित कन्सोल'
+};
+
+function translateToMarathi(value) {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+  if (MARATHI_TRANSLATIONS[normalized]) return MARATHI_TRANSLATIONS[normalized];
+  if (/^Showing \d+ of \d+$/.test(normalized)) return normalized.replace('Showing', 'दाखवत आहे').replace('of', 'पैकी');
+  if (/^\d+ templates$/.test(normalized)) return normalized.replace('templates', 'टेम्पलेट्स');
+  if (/^from ₹/.test(normalized)) return normalized.replace('from', 'पासून');
+  return null;
+}
+
+function MarathiTranslator({ language }) {
+  const textRecords = useRef(new WeakMap());
+  const attributeRecords = useRef(new WeakMap());
+  useEffect(() => {
+    const translateNode = (node) => {
+      const current = node.nodeValue || '';
+      const trimmed = current.replace(/\s+/g, ' ').trim();
+      if (!trimmed) return;
+      let record = textRecords.current.get(node);
+      if (!record) { record = { english: current, marathi: '' }; textRecords.current.set(node, record); }
+      else if (current !== record.marathi && current !== record.english) record.english = current;
+      const translated = language === 'mr' ? translateToMarathi(record.english) : null;
+      const next = translated || record.english;
+      record.marathi = translated || '';
+      const leading = (record.english.match(/^\s*/) || [''])[0];
+      const trailing = (record.english.match(/\s*$/) || [''])[0];
+      node.nodeValue = `${leading}${next.trim()}${trailing}`;
+    };
+    const translateAttributes = (element) => {
+      ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
+        if (!element.hasAttribute(attribute)) return;
+        let records = attributeRecords.current.get(element);
+        if (!records) { records = {}; attributeRecords.current.set(element, records); }
+        const current = element.getAttribute(attribute) || '';
+        if (!records[attribute]) records[attribute] = { english: current, marathi: '' };
+        else if (current !== records[attribute].marathi && current !== records[attribute].english) records[attribute].english = current;
+        const translated = language === 'mr' ? translateToMarathi(records[attribute].english) : null;
+        element.setAttribute(attribute, translated || records[attribute].english);
+        records[attribute].marathi = translated || '';
+      });
+    };
+    const apply = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.parentElement?.closest('script,style,noscript,textarea')) continue;
+        translateNode(node);
+      }
+      document.body.querySelectorAll('input,button,a,[title],[aria-label]').forEach(translateAttributes);
+    };
+    let observer;
+    const observe = () => {
+      apply();
+      observer = new MutationObserver(() => { observer.disconnect(); apply(); observe(); });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'] });
+    };
+    observe();
+    return () => observer?.disconnect();
+  }, [language]);
+  return null;
 }
 
 function Home({ templates, categories: categoryRows, onToast }) {
@@ -228,7 +696,7 @@ function Home({ templates, categories: categoryRows, onToast }) {
   const [activeBanner, setActiveBanner] = useState(0);
   const bannerSlides = [
     { eyebrow: 'LAUNCH WITHOUT THE WAIT', title: 'A premium first impression, ready today.', copy: 'Choose a polished starting point, add your story, and preview every detail before you pay.', action: 'Explore templates', href: '/templates', accent: '01' },
-    { eyebrow: 'MADE FOR LOCAL BUSINESS', title: 'Your best work deserves a better home.', copy: 'Restaurants, salons, clinics, builders and experts can start with a site that feels unmistakably theirs.', action: 'See categories', href: '#categories', accent: '02' },
+    { eyebrow: 'MADE FOR LOCAL BUSINESS', title: 'Your best work deserves a better home.', copy: 'Restaurants, salons, clinics, builders and experts can start with a site that feels unmistakably theirs.', action: 'See categories', href: '#about', accent: '02' },
     { eyebrow: 'SIMPLE. TRANSPARENT. YOURS.', title: 'Good design without the agency drama.', copy: 'Clear packages, editable sections, mobile-ready layouts and source code after payment.', action: 'Compare packages', href: '/pricing', accent: '03' }
   ];
   useEffect(() => {
@@ -238,17 +706,17 @@ function Home({ templates, categories: categoryRows, onToast }) {
   const banner = bannerSlides[activeBanner];
   return <main>
     <section className="hero section-pad"><div className="container hero-grid">
-      <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot" /> For local businesses with big plans</div><h1>Your business deserves a <em>better</em> website.</h1><p>Choose a professional template, add your business details, preview your website, and get your own website without the complexity or high development costs.</p><div className="hero-actions"><button className="button button-orange" onClick={() => navigate('/templates')}>Explore templates <ArrowRight size={17} /></button><a className="text-link" href="#how-it-works">See how it works <ArrowUpRight size={16} /></a></div><div className="trust-row"><div className="trust-item"><ShieldCheck size={17} /> Transparent pricing</div><div className="trust-item"><Monitor size={17} /> Responsive by default</div><div className="trust-item"><Eye size={17} /> Preview before you pay</div></div></div>
+       <div className="hero-copy"><div className="hero-badge"><Sparkles size={14} /> All-in-one website builder</div><h1>Your business<br />deserves a <em>better website.</em></h1><p>Create a polished website, grow your brand, and get more customers with WebBasket—the easy, powerful, and affordable website builder for Indian businesses.</p><div className="hero-feature-grid">{[[Monitor, 'Drag & drop builder'], [LayoutDashboard, '100+ modern templates'], [Zap, 'Lightning-fast performance'], [Smartphone, 'Mobile-friendly design'], [BarChart3, 'SEO-ready for growth'], [ShieldCheck, 'Secure & reliable']].map(([Icon, label]) => <span key={label}><Icon size={17} />{label}</span>)}</div><div className="hero-actions"><button className="button button-orange" onClick={() => navigate('/templates')}>Start building free <ArrowRight size={17} /></button><a className="hero-demo-link" href="#features"><span><Eye size={15} /></span> See how it works</a></div><div className="hero-signature">Build <i /> Grow <i /> Succeed</div></div>
       <HeroVisual onOpen={() => navigate('/builder/11')} />
     </div></section>
-    <section className="logo-strip"><div className="container logo-row"><span>BUILT FOR THE EVERYDAY ENTREPRENEUR</span><i /><span>NO AGENCY JARGON</span><i /><span>YOUR CONTENT, YOUR WEBSITE</span></div></section>
+     <section className="logo-strip hero-trust-strip"><div className="container logo-row"><span><ShieldCheck size={19} /> Trusted by <b>10,000+ businesses</b></span><i /><span><Rocket size={19} /> Launch in <b>minutes, not weeks</b></span><i /><span><LifeBuoy size={19} /> <b>24/7 expert support</b></span><i /><span><Zap size={19} /> <b>99.9% reliable</b></span></div></section>
     <section className="premium-banner-section"><div className="container premium-banner"><div className="premium-banner-glow premium-banner-glow-one" /><div className="premium-banner-glow premium-banner-glow-two" /><div className="premium-banner-copy"><div className="eyebrow eyebrow-light"><span className="eyebrow-dot" /> {banner.eyebrow}</div><motion.div key={activeBanner} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }}><h2>{banner.title}</h2><p>{banner.copy}</p><button className="button button-orange" onClick={() => banner.href.startsWith('#') ? document.querySelector(banner.href)?.scrollIntoView({ behavior: 'smooth' }) : navigate(banner.href)}>{banner.action} <ArrowRight size={15} /></button></motion.div><div className="premium-banner-dots" aria-label="Homepage banner slides">{bannerSlides.map((slide, index) => <button key={slide.accent} className={activeBanner === index ? 'active' : ''} onClick={() => setActiveBanner(index)} aria-label={`Show banner ${index + 1}`}><span /></button>)}</div></div><div className="premium-banner-art"><div className="banner-art-ring ring-one" /><div className="banner-art-ring ring-two" /><div className="banner-art-card banner-art-main"><span className="banner-art-number">{banner.accent}</span><div><small>WEBBASKET / STUDIO</small><b>Make it<br /><em>memorable.</em></b></div><span className="banner-art-arrow"><ArrowUpRight size={17} /></span></div><div className="banner-art-card banner-art-note"><Sparkles size={13} /><span>Curated<br />starting points</span></div><div className="banner-art-card banner-art-stat"><strong>₹1,000</strong><span>one-page launch</span></div></div></div></section>
-    <section className="section-pad" id="categories"><div className="container"><SectionHeading eyebrow="Start with your world" title="What kind of website do you need?" copy="A considered starting point for the businesses that keep local India moving." action={<Link className="text-link" to="/templates">View all templates <ArrowRight size={15} /></Link>} /><div className="category-grid">{(categoryRows.length ? categoryRows : categories).slice(0, 6).map((category, index) => <CategoryCard key={category.slug || category.id} category={category} index={index} />)}</div></div></section>
+     <section className="section-pad" id="about"><div className="container"><SectionHeading eyebrow="Start with your world" title="What kind of website do you need?" copy="A considered starting point for the businesses that keep local India moving." action={<Link className="text-link" to="/templates">View all templates <ArrowRight size={15} /></Link>} /><div className="category-grid">{(categoryRows.length ? categoryRows : categories).slice(0, 6).map((category, index) => <CategoryCard key={category.slug || category.id} category={category} index={index} />)}</div></div></section>
     <section className="section-pad section-tint"><div className="container"><SectionHeading eyebrow="The template shelf" title="Find your perfect starting point" copy="Real layouts for real businesses. Every template is responsive, editable, and ready for your story." action={<Link className="text-link" to="/templates">Browse marketplace <ArrowRight size={15} /></Link>} /><div className="template-grid">{featured.map((template, index) => <TemplateCard key={template.id} template={template} index={index} />)}</div></div></section>
-    <section className="section-pad" id="how-it-works"><div className="container"><SectionHeading eyebrow="A simpler way to start" title="From blank page to business-ready." copy="No long briefs. No mysterious quotes. Just a clear path to a website you can feel proud of." /><div className="steps-grid">{[[Store, '01', 'Choose a template', 'Start with a design that already understands your kind of business.'], [FileText, '02', 'Add your details', 'Tell us your story, services, hours, images, and the small details that matter.'], [Eye, '03', 'Preview your website', 'See it on desktop, tablet, and mobile before you make a decision.'], [Rocket, '04', 'Get your website', 'Purchase the source code or let our team help you take it live.']].map(([Icon, number, title, copy]) => <div className="step" key={number}><div className="step-number">{number}</div><div className="step-icon"><Icon size={22} /></div><h3>{title}</h3><p>{copy}</p></div>)}</div></div></section>
+     <section className="section-pad" id="features"><div className="container"><SectionHeading eyebrow="A simpler way to start" title="From blank page to business-ready." copy="No long briefs. No mysterious quotes. Just a clear path to a website you can feel proud of." /><div className="steps-grid">{[[Store, '01', 'Choose a template', 'Start with a design that already understands your kind of business.'], [FileText, '02', 'Add your details', 'Tell us your story, services, hours, images, and the small details that matter.'], [Eye, '03', 'Preview your website', 'See it on desktop, tablet, and mobile before you make a decision.'], [Rocket, '04', 'Get your website', 'Purchase the source code or let our team help you take it live.']].map(([Icon, number, title, copy]) => <div className="step" key={number}><div className="step-number">{number}</div><div className="step-icon"><Icon size={22} /></div><h3>{title}</h3><p>{copy}</p></div>)}</div></div></section>
     <section className="section-pad section-navy"><div className="container pricing-banner"><div><div className="eyebrow eyebrow-light">Straightforward packages</div><h2>A clear price for a clear beginning.</h2><p>Start with the scope that fits today. Add pages and services only when you need them.</p></div><div className="mini-plans">{plans.map((plan) => <button key={plan.id} className={plan.recommended ? 'mini-plan selected' : 'mini-plan'} onClick={() => navigate('/pricing')}><span>{plan.name}</span><strong>{plan.price}</strong><small>{plan.pages} {plan.pages === 1 ? 'page' : 'pages'}</small></button>)}</div></div></section>
     <section className="section-pad" id="services"><div className="container"><SectionHeading eyebrow="When you need a little more" title="Useful services, clearly scoped." copy="From launch support to custom functionality, choose the help that fits your next step." action={<Link className="text-link" to="/pricing">Explore services <ArrowRight size={15} /></Link>} /><div className="service-grid">{[[Rocket, 'Hosting & deployment', 'Get your finished website live with a domain and hosting setup.'], [PanelLeft, 'Custom admin panel', 'Manage enquiries, products, bookings, or content independently.'], [BarChart3, 'SEO setup', 'A considered search foundation for the people trying to find you.'], [LifeBuoy, 'Monthly maintenance', 'Keep content, security, and backups in good shape.']].map(([Icon, title, copy]) => <div className="service-card" key={title}><Icon size={23} /><h3>{title}</h3><p>{copy}</p><span>Quotation required <ArrowUpRight size={13} /></span></div>)}</div></div></section>
-    <section className="section-pad cta-section"><div className="container cta-card"><div className="cta-orb orb-one" /><div className="cta-orb orb-two" /><div className="eyebrow eyebrow-light">Ready when you are</div><h2>Ready to take your business online?</h2><p>Start with a template. Leave the technical overwhelm to us.</p><button className="button button-orange" onClick={() => navigate('/templates')}>Explore website templates <ArrowRight size={17} /></button></div></section>
+     <section className="section-pad cta-section" id="contact"><div className="container cta-card"><div className="cta-orb orb-one" /><div className="cta-orb orb-two" /><div className="eyebrow eyebrow-light">Ready when you are</div><h2>Ready to take your business online?</h2><p>Start with a template. Leave the technical overwhelm to us.</p><button className="button button-orange" onClick={() => navigate('/templates')}>Explore website templates <ArrowRight size={17} /></button></div></section>
   </main>;
 }
 
@@ -301,7 +769,7 @@ function WhatsAppFloat() {
       ? 'Hi Web Guruji, I want help choosing the right website package for my business.'
       : 'Hi Web Guruji, I want to build a professional website for my business.';
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(pageMessage)}`;
-  return <a className="whatsapp-float" href={href} target="_blank" rel="noreferrer"><span className="whatsapp-pulse" /><MessageCircle size={19} /><span><b>Talk to us on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={15} /></a>;
+  return <a className="whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Open WhatsApp chat" title="Open WhatsApp chat"><span className="whatsapp-pulse" /><WhatsAppIcon size={22} /><span><b>Talk to us on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={15} /></a>;
 }
 
 function normalizeWhatsAppNumber(value) {
@@ -309,10 +777,14 @@ function normalizeWhatsAppNumber(value) {
   return digits.length === 10 ? `91${digits}` : digits || WHATSAPP_NUMBER;
 }
 
+function WhatsAppIcon({ size = 19 }) {
+  return <svg className="whatsapp-icon" width={size} height={size} viewBox="0 0 448 512" fill="currentColor" aria-hidden="true"><path d="M380.9 97.1C339.2 55.4 283.4 32 223.9 32 101.5 32 2 131.5 2 253.9c0 44.3 11.6 87.6 33.7 125.5L0 480l103.4-34.1c36.1 19.7 77 30 120.5 30h.1C346.4 475.9 446 376.4 446 254c0-59.5-23.3-115.2-65.1-156.9zM223.9 441.6c-37.7 0-74.6-10.1-106.8-29.2l-7.7-4.6-61.4 20.2 20.6-59.8-5-7.8c-20.5-32.6-31.3-70.3-31.3-109.3C32.3 153.1 118.5 66.9 224 66.9c51.1 0 99.2 19.9 135.3 56.1 36.1 36.1 56 84.2 56 135.3-.1 105.6-86.3 191.8-191.4 191.8zm105.2-143.8c-5.7-2.8-33.7-16.6-38.9-18.5-5.2-1.9-9-2.8-12.8 2.8-3.8 5.7-14.7 18.5-18 22.3-3.3 3.8-6.6 4.3-12.3 1.4-5.7-2.8-24.5-9-46.6-28.7-17.2-15.3-28.8-34.2-32.1-40-3.3-5.7-.4-8.8 2.5-11.6 2.5-2.5 5.7-6.6 8.5-9.9 2.8-3.3 3.8-5.7 5.7-9.5 1.9-3.8 1-7.1-.5-9.9-1.4-2.8-12.8-30.9-17.5-42.3-4.6-11.1-9.3-9.6-12.8-9.8-3.3-.2-7.1-.2-10.9-.2s-9.9 1.4-15.1 7.1c-5.2 5.7-19.8 19.4-19.8 47.4 0 28 20.3 55.1 23.1 58.9 2.8 3.8 39.9 60.9 96.7 85.4 35.9 15.5 50 16.8 67.9 14.1 10.9-1.6 33.7-13.8 38.4-27.1 4.7-13.3 4.7-24.7 3.3-27.1-1.3-2.5-5.1-3.9-10.8-6.7z" /></svg>;
+}
+
 function PreviewWhatsAppFloat({ number }) {
   const normalized = normalizeWhatsAppNumber(number);
   const href = `https://wa.me/${normalized}?text=${encodeURIComponent('Hi, I would like to know more about this business.')}`;
-  return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer"><span className="whatsapp-pulse" /><MessageCircle size={16} /><span><b>Chat on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={13} /></a>;
+  return <a className="preview-whatsapp-float" href={href} target="_blank" rel="noreferrer" aria-label="Chat with this business on WhatsApp" title="Chat with this business on WhatsApp"><span className="whatsapp-pulse" /><WhatsAppIcon size={22} /><span><b>Chat on WhatsApp</b><small>Usually the fastest way to start</small></span><ArrowUpRight size={13} /></a>;
 }
 
 function submitTemplateFormToWhatsApp(event, { number, businessName, subject }) {
@@ -342,18 +814,23 @@ async function launchRazorpayCheckout(order, token, onToast) {
       await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; });
     }
     const checkout = new window.Razorpay({
-      key: order.razorpayKeyId,
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || order.razorpayKeyId,
       amount: order.amount * 100,
       currency: order.currency,
       name: 'Web Guruji',
       description: 'Website source code',
       order_id: order.razorpayOrderId,
       handler: async (payment) => {
-        const response = await fetch(`${API}/payments/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ orderId: order.id, razorpayOrderId: payment.razorpay_order_id, razorpayPaymentId: payment.razorpay_payment_id, razorpaySignature: payment.razorpay_signature }) });
-        onToast(response.ok ? 'Payment verified. Your source code is being prepared.' : 'Payment verification failed.');
+        try {
+          const response = await fetch(`${API}/payments/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ orderId: order.id, razorpayOrderId: payment.razorpay_order_id, razorpayPaymentId: payment.razorpay_payment_id, razorpaySignature: payment.razorpay_signature }) });
+          const result = await response.json().catch(() => ({}));
+          onToast(response.ok ? 'Payment verified. Your source code is being prepared.' : result.message || 'Payment verification failed.');
+        } catch { onToast('Could not verify the payment. Please contact support.'); }
       },
+      modal: { ondismiss: () => onToast('Payment cancelled. Your order is still pending.') },
       theme: { color: '#F28C28' }
     });
+    checkout.on('payment.failed', (payment) => onToast(payment?.error?.description || 'Payment failed. Please try again.'));
     checkout.open();
   } catch { onToast('Could not load Razorpay checkout. Try again or contact support.'); }
 }
@@ -546,6 +1023,8 @@ function BuilderV4({ templates, onToast }) {
   const template = templates.find((item) => String(item.id) === String(templateId)) || templates[0];
   const isRestaurantTemplate = template.category_slug === 'restaurants';
   const isMaisonAurele = template.name === 'Maison Aurele';
+  const isPortfolioTemplate = template.category_slug === 'portfolios';
+  const isManufacturingTemplate = template.category_slug === 'manufacturing';
   const previewConfig = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
   const token = localStorage.getItem('webguruji_token');
   const [businessName, setBusinessName] = useState(isMaisonAurele ? 'Maison Aurele' : previewConfig.defaultBusinessName);
@@ -558,7 +1037,7 @@ function BuilderV4({ templates, onToast }) {
   const [address, setAddress] = useState('');
   const [mapUrl, setMapUrl] = useState('');
   const [hours, setHours] = useState('');
-  const [ctaLabel, setCtaLabel] = useState('Book a table');
+  const [ctaLabel, setCtaLabel] = useState(isPortfolioTemplate ? "Let's collaborate" : isManufacturingTemplate ? 'Request a Quote' : 'Book a table');
   const packageId = template.pages >= 3 ? 'dynamic-3' : 'static';
   const [projectId, setProjectId] = useState(null);
   const [mediaIds, setMediaIds] = useState([]);
@@ -627,10 +1106,40 @@ function BuilderV4({ templates, onToast }) {
   return <main className="builder-page"><div className="builder-shell"><aside className="builder-sidebar"><div className="builder-brand"><button className="brand" onClick={() => navigate('/')}><span className="brand-mark">wg</span><span>web<span>guruji</span></span></button><span className="builder-tag">Full website builder</span></div><div className="builder-template-mini"><img src={template.thumbnail_url} alt="Selected template" /><div><span>Selected template</span><b>{template.name}</b><button onClick={() => navigate('/templates')}>Change template</button></div></div><div className="builder-step active"><span>01</span><div><b>Full website content</b><small>Text, contact and media</small></div><Check size={16} /></div><div className="builder-step"><span>02</span><div><b>{isRestaurantTemplate ? 'Menu and reservations' : '8-section homepage'}</b><small>{isRestaurantTemplate ? 'Customer-ready booking form' : '6-section About page'}</small></div></div><div className="builder-step"><span>03</span><div><b>Automatic delivery</b><small>Preview, pay, download</small></div></div><div className="builder-help"><LifeBuoy size={17} /><b>Need a hand?</b><p>Ask a specialist while you build.</p><a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi Web Guruji, I need help building my full website.')}`}>Talk to the team <ArrowRight size={13} /></a></div></aside><section className="builder-main"><div className="builder-toolbar"><div><span className="crumb">Templates / {template.name}</span><h1>Build the complete story.</h1></div><div className="builder-toolbar-actions"><span className={`save-status ${saved ? 'saved' : ''}`}><span />{saved ? 'Auto-saved' : 'Live draft'}</span><button className="button button-outline button-small" onClick={() => saveProject()}><Copy size={14} /> Save now</button></div></div><div className="builder-workspace full-builder-workspace"><div className="builder-form"><div className="form-heading"><div className="eyebrow">One form, full website</div><h2>Every section starts here.</h2><p>{isRestaurantTemplate ? 'Add your restaurant details, menu story and customer booking information.' : 'Homepage, About, contact, services, gallery and CTA content are connected to the preview and source code.'}</p></div><label>Business name<input value={businessName} onChange={(event) => setBusinessName(event.target.value)} /></label><InlineSectionUpload label="Logo image" description="Your brand mark" section="logo" onUpload={handleSectionUpload} mediaPreviews={mediaPreviews} onRemove={removeMedia} /><label>Tagline<input value={tagline} onChange={(event) => setTagline(event.target.value)} /></label><InlineSectionUpload label="Hero image" description="Main opening image" section="hero" onUpload={handleSectionUpload} mediaPreviews={mediaPreviews} onRemove={removeMedia} /><label>About / story<textarea value={about} onChange={(event) => setAbout(event.target.value)} rows="4" /></label><div className="form-row"><label>Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 84460 79635" /></label><label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="hello@business.com" /></label></div><label>WhatsApp number<input value={whatsappNumber} onChange={(event) => setWhatsappNumber(event.target.value)} placeholder="+91 84460 79635" /><small className="form-hint">This number powers the floating WhatsApp button in the live preview.</small></label><div className="form-row"><label>City<input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Pune" /></label><label>Opening hours<input value={hours} onChange={(event) => setHours(event.target.value)} placeholder="Mon-Sat · 10:00-20:00" /></label></div><label>Address<input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Complete business address" /></label><label>Map embed/link<input value={mapUrl} onChange={(event) => setMapUrl(event.target.value)} placeholder="https://www.google.com/maps/embed?..." /><small className="form-hint">Paste a Google Maps embed URL. A map is generated from your address if left empty.</small></label><label>Primary button text<input value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} placeholder="Book a table" /></label>{isMaisonAurele ? <SectionEditorFields content={sectionContent} setContent={setSectionContent} onUpload={handleSectionUpload} mediaPreviews={mediaPreviews} onRemove={removeMedia} /> : <CategorySectionFields content={categoryContent} setContent={setCategoryContent} config={previewConfig} onUpload={handleSectionUpload} mediaPreviews={mediaPreviews} onRemove={removeMedia} />}<div className="fixed-package-note"><span>Package</span><b>{template.pages >= 3 ? 'Three-page website — ₹1,500' : 'One-page website — ₹1,000'}</b><small>{template.pages >= 3 ? 'Full three-page website with editable sections' : 'Full one-page website with all sections'}</small></div><div className="builder-purchase"><div><b>Full website, automatic handover</b><span>Source code is generated after verified payment.</span></div><button className="button button-orange" onClick={startCheckout}>Pay and get website <ArrowRight size={15} /></button></div></div><FullWebsitePreview categoryContent={categoryContent} sectionContent={sectionContent} template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} whatsappNumber={whatsappNumber} email={email} city={city} address={address} mapUrl={mapUrl} hours={hours} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} packageId={packageId} /></div></section></div></main>;
 }
 
+function BusinessVariantPreview({ template, businessName, tagline, about, phone, email, city, address, whatsappNumber, ctaLabel, mediaPreviews = [], categoryContent }) {
+  const [viewport, setViewport] = useState('desktop');
+  const [sent, setSent] = useState(false);
+  const rootRef = useRef(null);
+  const variant = template.designVariant || 'editorial';
+  const config = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
+  const services = template.serviceItems?.length ? template.serviceItems : config.services;
+  const extra = template.extraSection || businessVariantExtras.blueprint;
+  const images = mediaPreviews.length ? mediaPreviews.map((item) => item.url) : [template.thumbnail_url, categoryImagePool[template.id % categoryImagePool.length], categoryImagePool[(template.id + 3) % categoryImagePool.length]];
+  const goTo = (selector) => rootRef.current?.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const submit = (event) => { submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: `New ${template.category_name} enquiry.` }); setSent(true); };
+  return <div ref={rootRef} className={`builder-preview full-site-preview-panel category-template-preview business-variant-preview category-design-${variant}`}><div className="preview-toolbar"><span>{template.name} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className={`business-variant-site variant-${variant}`}>
+    <header className="business-variant-nav"><button className="business-variant-brand" onClick={() => goTo('.business-variant-site')}><span>{String(businessName || template.category_name).slice(0, 2).toUpperCase()}</span><b>{businessName || template.category_name}</b></button><nav><button onClick={() => goTo('#variant-about')}>About</button><button onClick={() => goTo('#variant-services')}>Services</button><button onClick={() => goTo('#variant-work')}>Work</button><button onClick={() => goTo('#variant-contact')}>Contact</button></nav><button className="business-variant-cta" onClick={() => goTo('#variant-contact')}>{ctaLabel || 'Get started'} <ArrowUpRight size={13} /></button></header>
+    <section className="business-variant-hero"><div className="business-variant-hero-copy"><small>{template.variantLabel || config.label}</small><h2>{template.heroTitle || tagline || config.defaultTagline}</h2><p>{about || config.defaultAbout}</p><div className="business-variant-actions"><button className="business-variant-primary" onClick={() => goTo('#variant-contact')}>{ctaLabel || 'Get started'} <ArrowRight size={13} /></button><button className="business-variant-secondary" onClick={() => goTo('#variant-services')}>Explore <ArrowRight size={13} /></button></div></div><div className="business-variant-hero-art"><img src={images[0]} alt={`${businessName} hero`} /><span>{template.category_name}</span><i /></div></section>
+    <div className="business-variant-ribbon"><span>01 · CLEAR POSITIONING</span><span>02 · BUSINESS-SPECIFIC SECTIONS</span><span>03 · WHATSAPP-FIRST ENQUIRIES</span></div>
+    <section id="variant-about" className="business-variant-about"><div><small>01 · ABOUT</small><h3>{template.aboutTitle || categoryContent.aboutTitle}</h3><p>{categoryContent.aboutBody || about || config.defaultAbout}</p><button onClick={() => goTo('#variant-contact')}>Start a conversation <ArrowUpRight size={13} /></button></div><img src={images[1]} alt={`${businessName} story`} /></section>
+    <section id="variant-services" className="business-variant-services"><div className="business-variant-heading"><small>02 · {config.serviceLabel || 'WHAT WE DO'}</small><h3>{categoryContent.servicesTitle || 'Useful services, made easy to choose.'}</h3><p>{template.description}</p></div><div className="business-variant-service-grid">{services.slice(0, 6).map((service, index) => <article key={`${service}-${index}`}><b>0{index + 1}</b><h4>{service}</h4><p>{config.defaultAbout}</p><button onClick={() => goTo('#variant-contact')}>Ask about it <ArrowUpRight size={12} /></button></article>)}</div></section>
+    <section className="business-variant-extra"><small>03 · {extra.title.toUpperCase()}</small><h3>{extra.title}</h3><p>{extra.copy}</p><div>{extra.items.map((item, index) => <article key={item}><span>0{index + 1}</span><b>{item}</b><button onClick={() => goTo('#variant-contact')}>Explore <ArrowUpRight size={12} /></button></article>)}</div></section><section id="variant-work" className="business-variant-work"><div className="business-variant-heading"><small>04 · SHOWCASE</small><h3>Details that make the difference.</h3><p>Build trust with real work, products, people and moments from the business.</p></div><div className="business-variant-gallery">{images.concat(images).slice(0, 4).map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${businessName} showcase ${index + 1}`} />)}</div></section>
+    <section className="business-variant-process"><small>04 · HOW IT WORKS</small><h3>A clear path from first question to next step.</h3><div>{['Understand your need', 'Recommend the right option', 'Confirm details', 'Stay connected'].map((step, index) => <article key={step}><span>0{index + 1}</span><b>{step}</b><p>Simple communication designed around your {template.category_name.toLowerCase()}.</p></article>)}</div></section>
+    <section className="business-variant-proof"><small>05 · WHY PEOPLE CHOOSE US</small><h3>{categoryContent.testimonial || 'Thoughtful service, clear communication and a better experience from the first click.'}</h3><span>{businessName} · trusted by customers</span></section>
+    <section className="business-variant-faq"><div><small>06 · FAQ</small><h3>{categoryContent.faqTitle || 'Good to know before you begin.'}</h3></div><div><details open><summary>How do I get started?</summary><p>{categoryContent.faqBody || config.defaultAbout}</p></details><details><summary>Can I ask for a custom requirement?</summary><p>Yes. Share your requirement in the form and continue the conversation on WhatsApp.</p></details><details><summary>Does this work on mobile?</summary><p>Yes. The template is responsive across desktop, tablet and mobile preview modes.</p></details></div></section>
+    <section id="variant-contact" className="business-variant-contact"><div><small>07 · {template.formTitle || 'CONTACT'}</small><h3>{template.formTitle || 'Ready for the next step?'}</h3><p>{address || city || 'Your business location'}<br />{phone || 'WhatsApp enquiries welcome'}<br />{email || 'Share your requirement directly'}</p></div>{sent ? <div className="business-variant-success"><Check size={20} /><b>WhatsApp enquiry prepared.</b><span>Continue in WhatsApp to send your details.</span><button onClick={() => setSent(false)}>Send another</button></div> : <form onSubmit={submit}><label>Name<input name="name" required placeholder="Your name" /></label><label>Phone<input name="phone" required placeholder="WhatsApp number" /></label><label>Requirement<select name="requirement">{services.map((service) => <option key={service}>{service}</option>)}</select></label><label className="business-variant-wide">Message<textarea name="message" required rows="4" placeholder="Tell us what you need" /></label><button type="submit" className="business-variant-primary">Send to WhatsApp <ArrowRight size={13} /></button></form>}</section>
+    <section className="business-variant-final"><small>08 · LET'S BEGIN</small><h3>Make the next step feel easy.</h3><button onClick={() => goTo('#variant-contact')}>{ctaLabel || 'Get started'} <ArrowRight size={13} /></button></section><footer className="business-variant-footer"><b>{businessName || template.category_name}</b><span>{categoryContent.footerTagline || 'Built around your business.'}</span><button onClick={() => goTo('.business-variant-site')}>Back to top ↑</button></footer>
+  </div><PreviewWhatsAppFloat number={whatsappNumber} /></div></div>;
+}
+
 function CategoryWebsitePreview({ template, businessName, tagline, about, phone, email, city, address, hours, whatsappNumber, ctaLabel, mediaPreviews, categoryContent }) {
   const [viewport, setViewport] = useState('desktop');
   const [sent, setSent] = useState(false);
   const config = categoryPreviewConfig[template.category_slug] || categoryPreviewConfig['professional-services'];
+  const designVariant = template.designVariant || 'editorial';
+  const serviceItems = template.serviceItems?.length ? template.serviceItems : categoryContent.services;
+  const processSteps = template.processSteps?.length ? template.processSteps : ['Understand the brief', 'Shape the right direction', 'Deliver with care'];
+  const formTitle = template.formTitle || 'Ready for the next step?';
   useEffect(() => {
     const root = document.querySelector('.category-template-preview:not(.category-three-page-preview)');
     if (!root) return undefined;
@@ -725,11 +1234,88 @@ function CategoryThreePagePreview({ template, businessName, tagline, about, phon
     </div>
   </div>;
 }
+function PortfolioPreview({ businessName, about, email, whatsappNumber, mediaPreviews = [], template }) {
+  const [viewport, setViewport] = useState('desktop');
+  const rootRef = useRef(null);
+  const assets = {
+    portrait: 'https://animated-artist-canvas.lovable.app/assets/portrait-CygGq_Uj.jpg',
+    work1: 'https://animated-artist-canvas.lovable.app/assets/work-1-DD4hmFsf.jpg',
+    work2: 'https://animated-artist-canvas.lovable.app/assets/work-2-B735z13N.jpg',
+    work3: 'https://animated-artist-canvas.lovable.app/assets/work-3-Cmuh3zjK.jpg',
+    work4: 'https://animated-artist-canvas.lovable.app/assets/work-4-CNkfgwoR.jpg',
+    work5: 'https://animated-artist-canvas.lovable.app/assets/work-5-DOBtQJYk.jpg',
+    work6: 'https://animated-artist-canvas.lovable.app/assets/work-6-B1zThbev.jpg'
+  };
+  const heroImage = mediaPreviews.find((media) => media.section === 'hero')?.url || assets.portrait;
+  const uploadedGallery = mediaPreviews.filter((media) => media.section === 'gallery').map((media) => media.url);
+  const workImages = uploadedGallery.length ? [...uploadedGallery, assets.work1, assets.work2, assets.work3, assets.work4, assets.work5].slice(0, 6) : [assets.work1, assets.work2, assets.work3, assets.work4, assets.work5, assets.work6];
+  const goTo = (selector) => rootRef.current?.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const work = [
+    ['Nexora Finance', 'Analytics dashboard for a next-gen fintech — 40+ screens, dark-first design language.', 'Product Design', 'Web App', '2026'],
+    ['Indigo Atelier', 'Full brand identity for an artisanal luxury house, from wordmark to packaging.', 'Branding', 'Art Direction', '2025'],
+    ['Stillpoint', 'Meditation app with a generative, breathing interface — 4.9★ on the App Store.', 'Mobile', 'UI/UX', '2025'],
+    ['Chrome Flow', 'A 3D and motion exploration for a launch film — liquid chrome, rendered in real time.', 'Motion', '3D', '2026'],
+    ['Velmora', 'Editorial e-commerce experience for a fashion label — 2.3× conversion after launch.', 'Web Design', 'E-commerce', '2024'],
+    ['Nova UI', 'A 120-component design system with tokens, docs and automated accessibility checks.', 'Design Systems', 'Figma', '2026']
+  ];
+  return <div ref={rootRef} className="builder-preview full-site-preview-panel portfolio-preview-panel"><div className="preview-toolbar"><span>{template?.name || 'Animated portfolio'} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className="portfolio-preview-site"><header className="portfolio-preview-nav"><button className="portfolio-wordmark" onClick={() => goTo('.portfolio-preview-site')}>{businessName || 'Aria'}<span>.</span></button><nav><button onClick={() => goTo('.portfolio-preview-work')}>Work</button><button onClick={() => goTo('.portfolio-preview-about')}>About</button><button onClick={() => goTo('.portfolio-preview-services')}>Services</button><button onClick={() => goTo('.portfolio-preview-contact')}>Contact</button><button className="portfolio-nav-cta" onClick={() => goTo('.portfolio-preview-contact')}>Let's talk <ArrowUpRight size={12} /></button></nav></header><section className="portfolio-preview-hero"><div className="portfolio-aurora portfolio-aurora-one" /><div className="portfolio-aurora portfolio-aurora-two" /><div className="portfolio-aurora portfolio-aurora-three" /><div className="portfolio-preview-hero-grid"><div className="portfolio-preview-copy"><div className="portfolio-availability"><i /> Available for new projects</div><h2>Designing interfaces that <em>feel alive</em>.</h2><p>{about || 'I’m Aria — a product designer & design engineer crafting premium digital experiences, from first sketch to shipped product. I turn complex problems into interfaces people love to use.'}</p><div className="portfolio-preview-actions"><button className="portfolio-primary-button" onClick={() => goTo('.portfolio-preview-work')}>View my work <ArrowRight size={14} /></button><button className="portfolio-secondary-button" onClick={() => goTo('.portfolio-preview-contact')}><Sparkles size={14} /> Let's collaborate</button></div><dl className="portfolio-stats"><div><dt>Years of experience</dt><dd>8+</dd><small>Years of experience</small></div><div><dt>Projects shipped</dt><dd>60+</dd><small>Projects shipped</small></div><div><dt>Design awards</dt><dd>12</dd><small>Design awards</small></div></dl></div><div className="portfolio-portrait-wrap"><div className="portfolio-portrait-glow" /><div className="portfolio-portrait-card"><img src={heroImage} alt={`${businessName || 'Aria'} portrait`} /></div><div className="portfolio-float portfolio-float-focus"><small>Focus</small><b>Design Systems</b></div><div className="portfolio-float portfolio-float-ai"><Sparkles size={14} /><b>AI Prototyping</b></div><div className="portfolio-float portfolio-float-current"><small>Currently</small><b>Freelance · Worldwide</b></div></div></div></section><div className="portfolio-marquee"><div className="portfolio-marquee-track">{['Product Design', 'Design Systems', 'UX Research', 'Prototyping', 'Motion Design', 'Brand Identity', 'Design Engineering', 'Interaction Design', 'Product Design', 'Design Systems'].map((item, index) => <span key={`${item}-${index}`}>{item}<Sparkles size={13} /></span>)}</div></div><section id="work" className="portfolio-preview-work"><div className="portfolio-section-heading"><div><small>Selected Work</small><h3>Projects with a pulse</h3></div><p>A few favorites from the last few years — products, brands and experiments that shipped and made a dent.</p></div><div className="portfolio-work-grid">{work.map(([name, description, tagOne, tagTwo, year], index) => <article key={name} className="portfolio-work-card"><div className="portfolio-work-image"><img src={workImages[index]} alt={name} /><span>{year}</span></div><div className="portfolio-work-copy"><div><h4>{name}</h4><ArrowUpRight size={15} /></div><p>{description}</p><div className="portfolio-tags"><span>{tagOne}</span><span>{tagTwo}</span></div></div></article>)}</div></section><section id="about" className="portfolio-preview-about"><div><small>About</small><h3>Behind the pixels</h3></div><div><p>I'm a product designer and design engineer with 8+ years shaping digital products for startups and global brands. I live where design meets code — sketching in the morning, prototyping in the afternoon, and arguing about easing curves by evening.</p><p>My work spans fintech, wellness, fashion and developer tools, and it's always built on the same foundation: clarity, systems thinking, and a healthy obsession with detail.</p><ul><li>Design is how it works, not just how it looks.</li><li>Ship small, learn fast, polish relentlessly.</li><li>Systems over screens — build once, reuse everywhere.</li></ul></div></section><section id="services" className="portfolio-preview-services"><div className="portfolio-section-heading"><div><small>Services</small><h3>What I can do for you</h3></div></div><div className="portfolio-service-grid">{[[Palette, 'Product Design', 'End-to-end design of web and mobile products — flows, wireframes, polished UI and handoff-ready specs.'], [LayoutDashboard, 'Design Systems', 'Scalable token-based systems with component libraries, documentation and governance your team will actually use.'], [Compass, 'UX Research & Strategy', 'Interviews, testing and journey mapping that de-risk decisions before a single pixel gets pushed.'], [WandSparkles, 'Motion & Interaction', 'Micro-interactions, animated prototypes and launch visuals that make products feel alive.']].map(([Icon, name, description]) => <article key={name}><span><Icon size={17} /></span><h4>{name}</h4><p>{description}</p></article>)}</div></section><footer id="contact" className="portfolio-preview-contact"><div className="portfolio-contact-aurora" /><div><small>Contact</small><h3>Let's make something <em>extraordinary</em></h3><p>Have a product to build, a brand to shape, or just a wild idea? My inbox is always open — I reply within a day.</p><a href={`mailto:${email || 'hello@ariakapoor.design'}`}>{email || 'hello@ariakapoor.design'} <ArrowUpRight size={13} /></a></div><div className="portfolio-socials"><button onClick={() => goTo('.portfolio-preview-work')}>View work</button><a href={`https://wa.me/${normalizeWhatsAppNumber(whatsappNumber)}`} target="_blank" rel="noreferrer">WhatsApp</a></div><div className="portfolio-preview-footer"><b>{businessName || 'Aria Kapoor'}</b><span>Designed & built with care · 2026</span></div></footer></div><PreviewWhatsAppFloat number={whatsappNumber} /></div></div>;
+}
+
+function ManufacturingPreview({ template, businessName, tagline, about, phone, email, city, address, mapUrl, whatsappNumber, ctaLabel, mediaPreviews = [] }) {
+  const [viewport, setViewport] = useState('desktop');
+  const rootRef = useRef(null);
+  const assets = {
+    hero: 'https://forge-field-machinery.lovable.app/assets/hero-cnc-B7Fq_wXF.jpg',
+    banner: 'https://forge-field-machinery.lovable.app/assets/factory-wide-banner-Cm8cxQHX.png',
+    about: 'https://forge-field-machinery.lovable.app/assets/about-factory-D8WDdhAp.jpg',
+    inspection: 'https://forge-field-machinery.lovable.app/assets/inspection-quality-DDxvtax3.png',
+    workshop: 'https://forge-field-machinery.lovable.app/assets/workshop-process-Dt9buoCO.png',
+    batch: 'https://forge-field-machinery.lovable.app/assets/component-batch-CNAGSF6H.png',
+    shaft: 'https://forge-field-machinery.lovable.app/assets/shaft-closeup-BIH9IddR.jpg',
+    industries: ['https://forge-field-machinery.lovable.app/assets/industry-agri-machinery-BtV-3hqt.jpg', 'https://forge-field-machinery.lovable.app/assets/industry-tractor-DNA1yTB5.jpg', 'https://forge-field-machinery.lovable.app/assets/industry-engineering-C03c8Tz6.jpg'],
+    products: ['https://forge-field-machinery.lovable.app/assets/product-stub-axle-DJrHctUK.jpg', 'https://forge-field-machinery.lovable.app/assets/product-rotavator-shaft-BP4Zim18.jpg', 'https://forge-field-machinery.lovable.app/assets/product-input-shaft-0Z5yomk6.jpg', 'https://forge-field-machinery.lovable.app/assets/product-pipe-flange-CnPRzqJc.jpg', 'https://forge-field-machinery.lovable.app/assets/product-tractor-components-CCQIUWEb.jpg', 'https://forge-field-machinery.lovable.app/assets/product-agri-tools-BY_WZpGT.jpg']
+  };
+  const custom = (section) => mediaPreviews.find((media) => media.section === section)?.url;
+  const goTo = (selector) => rootRef.current?.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const products = [
+    ['Trailer Stub Axles', 'Axle Components', 'Precision-engineered axle components designed for agricultural trailers and heavy-duty applications.'],
+    ['Rotavator Shafts', 'Power Transmission', 'Durable shafts manufactured for reliable power transmission in rotavator systems.'],
+    ['Input Shafts', 'Power Transmission', 'Precision-machined input shafts designed for accurate fitment and dependable operation.'],
+    ['Pipe Flanges', 'Machined Components', 'Industrial-grade machined flanges for mechanical and engineering applications.'],
+    ['Tractor Components', 'Tractor Parts', 'Precision parts for tractor assemblies, replacement supply and custom requirements.'],
+    ['Agricultural Tools & Components', 'Field Equipment', 'Practical components for agricultural equipment, built to supplied requirements.']
+  ];
+  const capabilities = [
+    ['CNC Turning', 'Shafts, journals, shoulders and stepped components machined for repeatable fitment.'],
+    ['Milling & Drilling', 'Flanges, brackets, mounting faces and bolt-hole patterns produced to drawing.'],
+    ['Spline & Profile Work', 'Power-transmission profiles and mating features prepared for assembly requirements.'],
+    ['Batch Staging', 'Components organized, checked and prepared for reliable dispatch cycles.'],
+    ['Custom Components', 'Manufacturing support for OEM, replacement and requirement-specific agricultural parts.']
+  ];
+  return <div ref={rootRef} className="builder-preview full-site-preview-panel manufacturing-preview-panel"><div className="preview-toolbar"><span>{template?.name || 'Manufacturing'} template preview</span><div className="preview-viewports"><button className={viewport === 'desktop' ? 'active' : ''} onClick={() => setViewport('desktop')}><Monitor size={14} /> Desktop</button><button className={viewport === 'tablet' ? 'active' : ''} onClick={() => setViewport('tablet')}><Tablet size={14} /> Tablet</button><button className={viewport === 'mobile' ? 'active' : ''} onClick={() => setViewport('mobile')}><Smartphone size={14} /> Mobile</button></div></div><div className={`preview-frame full-preview-frame viewport-${viewport}`}><div className="manufacturing-preview-site">
+    <header className="manufacturing-nav"><button className="manufacturing-brand" onClick={() => goTo('.manufacturing-preview-site')}><span className="manufacturing-monogram">SG</span><span><b>{businessName || 'Shree Gurukrupa'}</b><small>ENTERPRISES · PRECISION MANUFACTURING</small></span></button><nav><button onClick={() => goTo('#manufacturing-about')}>About</button><button onClick={() => goTo('#manufacturing-products')}>Products</button><button onClick={() => goTo('#manufacturing-capabilities')}>Capabilities</button><button onClick={() => goTo('#manufacturing-quality')}>Quality</button><button onClick={() => goTo('#manufacturing-contact')}>Contact</button></nav><button className="manufacturing-nav-cta" onClick={() => goTo('#manufacturing-contact')}>{ctaLabel || 'Request a Quote'} <ArrowUpRight size={14} /></button></header>
+    <section className="manufacturing-hero"><img src={custom('hero') || assets.hero} alt="CNC manufacturing workshop" /><div className="manufacturing-hero-overlay" /><div className="manufacturing-hero-copy"><span className="manufacturing-eyebrow">AGRICULTURAL MACHINERY COMPONENTS · KOLHAPUR</span><h2>Engineered for <em>performance.</em><br />Built for the field.</h2><p>{tagline || 'Precision agricultural machinery components, tractor parts and machined engineering components.'}</p><div className="manufacturing-actions"><button className="manufacturing-primary" onClick={() => goTo('#manufacturing-contact')}>{ctaLabel || 'Request a Quote'} <ArrowRight size={15} /></button><button className="manufacturing-ghost" onClick={() => goTo('#manufacturing-products')}>Explore products <ArrowRight size={15} /></button></div></div><div className="manufacturing-hero-stamp"><span>SG</span><b>PRECISION<br />STRENGTH<br />RELIABILITY</b></div></section>
+    <div className="manufacturing-trust-strip"><span><b>01</b> Machined parts</span><span><b>02</b> Checked output</span><span><b>03</b> Kolhapur base</span><span><b>04</b> Requirement-led supply</span></div>
+    <section id="manufacturing-about" className="manufacturing-about manufacturing-section"><div className="manufacturing-section-label">01 · ABOUT</div><div className="manufacturing-about-grid"><div><h3>Manufacturing discipline from <em>Shiroli MIDC.</em></h3><p>{about || 'Precision agricultural machinery components, tractor parts and machined engineering components from Shiroli MIDC, Kolhapur.'}</p><button className="manufacturing-text-link" onClick={() => goTo('#manufacturing-capabilities')}>How we work <ArrowUpRight size={14} /></button></div><div className="manufacturing-about-image"><img src={custom('about') || assets.about} alt="Manufacturing facility" /><span>01 / FACILITY</span></div></div></section>
+    <section id="manufacturing-products" className="manufacturing-products manufacturing-section"><div className="manufacturing-section-label">02 · PRODUCT RANGE</div><div className="manufacturing-heading-row"><div><h3>Agricultural machinery <em>components.</em></h3><p>A focused range of shafts, axles, flanges, tractor parts and custom engineering components manufactured to supplied requirements.</p></div><span className="manufacturing-outline-number">06</span></div><div className="manufacturing-product-grid">{products.map(([name, category, description], index) => <article className="manufacturing-product-card" key={name}><div className="manufacturing-product-image"><img src={assets.products[index]} alt={name} /><span>0{index + 1}</span></div><div className="manufacturing-product-copy"><small>{category}</small><h4>{name}</h4><p>{description}</p><button onClick={() => goTo('#manufacturing-contact')}>Ask about it <ArrowUpRight size={14} /></button></div></article>)}</div></section>
+    <section id="manufacturing-capabilities" className="manufacturing-capabilities manufacturing-section"><div className="manufacturing-section-label">03 · CAPABILITIES</div><div className="manufacturing-heading-row"><div><h3>Machining capability for <em>working components.</em></h3><p>Turning, milling, drilling, staging and custom component support for agricultural machinery and engineering requirements.</p></div></div><div className="manufacturing-capability-grid">{capabilities.map(([name, description], index) => <article key={name}><span>0{index + 1}</span><div><h4>{name}</h4><p>{description}</p></div><ArrowUpRight size={16} /></article>)}</div></section>
+    <section className="manufacturing-process manufacturing-section"><div className="manufacturing-section-label">04 · PROCESS</div><div className="manufacturing-process-grid"><div><h3>A compact process from requirement to <em>dispatch.</em></h3><p>The production story is kept simple and verifiable: review, plan, machine, inspect and dispatch.</p></div><div className="manufacturing-process-steps">{[['01', 'Review', 'Drawing, sample or requirement notes.'], ['02', 'Machine', 'Turning, milling and profile work.'], ['03', 'Inspect', 'Fitment-focused output checks.'], ['04', 'Dispatch', 'Batch staged for dependable supply.']].map(([number, title, copy]) => <div key={number}><b>{number}</b><h4>{title}</h4><p>{copy}</p></div>)}</div></div></section>
+    <section id="manufacturing-quality" className="manufacturing-quality manufacturing-section"><div className="manufacturing-quality-image"><img src={custom('quality') || assets.inspection} alt="Quality inspection" /></div><div className="manufacturing-quality-copy"><div className="manufacturing-section-label">05 · QUALITY</div><h3>Measured where <em>fitment matters.</em></h3><p>Inspection is presented honestly: no invented certifications, only the checks and discipline that support dependable machined components.</p><div className="manufacturing-quality-points"><span><Check size={15} /> No invented dimensions</span><span><Check size={15} /> Honest specifications</span><span><Check size={15} /> Requirement-linked output</span></div></div></section>
+    <section className="manufacturing-industries manufacturing-section"><div className="manufacturing-section-label">06 · INDUSTRIES</div><div className="manufacturing-heading-row"><div><h3>Built around agricultural <em>machinery supply.</em></h3><p>Serving machinery builders, tractor part networks, trailer applications and engineering buyers with requirement-led components.</p></div></div><div className="manufacturing-industry-grid">{[['Agricultural machinery', 'Field-ready assemblies and equipment.', assets.industries[0]], ['Tractor parts', 'Replacement and fitment-focused supply.', assets.industries[1]], ['Engineering buyers', 'Custom components and repeat batches.', assets.industries[2]]].map(([name, copy, image]) => <article key={name}><img src={image} alt={name} /><div><small>INDUSTRY</small><h4>{name}</h4><p>{copy}</p><button onClick={() => goTo('#manufacturing-contact')}>Discuss a requirement <ArrowUpRight size={13} /></button></div></article>)}</div></section>
+    <section className="manufacturing-gallery manufacturing-section"><div className="manufacturing-section-label">07 · WORKSHOP</div><div className="manufacturing-gallery-grid"><img src={assets.banner} alt="Factory floor" /><img src={custom('gallery') || assets.workshop} alt="Workshop process" /><img src={assets.batch} alt="Component batch" /></div></section>
+    <section id="manufacturing-contact" className="manufacturing-rfq manufacturing-section"><div><div className="manufacturing-section-label">08 · REQUEST FOR QUOTE</div><h3>Send the drawing, sample or <em>requirement.</em></h3><p>Use the quote form for product enquiries, custom components and recurring batch requirements.</p><div className="manufacturing-contact-details"><span>{city || 'Kolhapur'}, Maharashtra</span><span>{phone || 'WhatsApp enquiry available'}</span><span>{email || 'Specification-led supply'}</span></div></div><form onSubmit={(event) => submitTemplateFormToWhatsApp(event, { number: whatsappNumber, businessName, subject: 'I would like a manufacturing quote.' })}><label>Name<input name="name" placeholder="Your name" required /></label><label>Company<input name="company" placeholder="Company name" /></label><label>Phone<input name="phone" placeholder="+91" /></label><label>Product interest<select name="product"><option>Trailer Stub Axles</option><option>Rotavator Shafts</option><option>Input Shafts</option><option>Custom component</option></select></label><label className="manufacturing-form-wide">Requirement<textarea name="requirement" rows="4" placeholder="Share drawing, sample or requirement notes" /></label><button type="submit" className="manufacturing-primary">Send requirement <ArrowRight size={15} /></button></form></section>
+    <footer className="manufacturing-footer"><div className="manufacturing-footer-outline">GURUKRUPA</div><div className="manufacturing-footer-row"><div><b>SG · SHREE GURUKRUPA</b><small>ENTERPRISES</small></div><p>Precision-manufactured agricultural machinery and tractor components from Shiroli MIDC, Kolhapur — engineered for strength, accuracy and dependable performance.</p><button onClick={() => goTo('.manufacturing-preview-site')}>Back to top <ArrowUpRight size={13} /></button></div><div className="manufacturing-footer-bottom"><span>PRECISION · STRENGTH · RELIABILITY</span><span>{address || 'Shiroli MIDC, Kolhapur, Maharashtra 416122'}</span></div></footer>
+  </div></div><PreviewWhatsAppFloat number={whatsappNumber} /></div>;
+}
+
 function FullWebsitePreview({ template, businessName, tagline, about, phone, whatsappNumber, email, city, address, mapUrl, hours, ctaLabel, mediaPreviews, packageId, sectionContent, categoryContent }) {
   const [viewport, setViewport] = useState('desktop');
   const [page, setPage] = useState('home');
   const images = mediaPreviews.length ? mediaPreviews.map((item) => item.url) : [template.thumbnail_url, 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80', 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=900&q=80'];
   const pageTabs = packageId === 'static' ? [{ id: 'home', label: 'One-page site' }] : [{ id: 'home', label: 'Homepage' }, { id: 'about', label: 'About page' }];
+  if (template.designVariant) return <BusinessVariantPreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} categoryContent={categoryContent} />;
+  if (template.category_slug === 'portfolios') return <PortfolioPreview template={template} businessName={businessName} about={about} email={email} whatsappNumber={whatsappNumber} mediaPreviews={mediaPreviews} />;
+  if (template.category_slug === 'manufacturing') return <ManufacturingPreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} mapUrl={mapUrl} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} />;
   if (template.name === 'Maison Aurele') return <MaisonAurelePreview businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} hours={hours} ctaLabel={ctaLabel} whatsappNumber={whatsappNumber} mediaPreviews={mediaPreviews} sectionContent={sectionContent} viewport={viewport} setViewport={setViewport} />;
   if (template.pages >= 3) return <CategoryThreePagePreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} mapUrl={mapUrl} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} categoryContent={categoryContent} />;
   return <CategoryWebsitePreview template={template} businessName={businessName} tagline={tagline} about={about} phone={phone} email={email} city={city} address={address} hours={hours} whatsappNumber={whatsappNumber} ctaLabel={ctaLabel} mediaPreviews={mediaPreviews} categoryContent={categoryContent} />;

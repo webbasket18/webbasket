@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Razorpay from 'razorpay';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -186,6 +187,62 @@ async function requireAdmin(req, res, next) {
   } catch (error) { next(error); }
 }
 
+function getRazorpayClient() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    const error = new Error('Razorpay credentials are not configured.');
+    error.code = 'RAZORPAY_NOT_CONFIGURED';
+    throw error;
+  }
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+}
+
+function normalizeRazorpayAmount(amount) {
+  const parsedAmount = typeof amount === 'string' && amount.trim() !== '' ? Number(amount) : amount;
+  if (!Number.isInteger(parsedAmount) || parsedAmount < 100) return null;
+  return parsedAmount;
+}
+
+async function createRazorpayOrder({ amount, currency = 'INR', receipt, notes }) {
+  const normalizedAmount = normalizeRazorpayAmount(amount);
+  if (normalizedAmount === null) {
+    const error = new Error('Amount must be an integer of at least 100 paise.');
+    error.code = 'INVALID_AMOUNT';
+    throw error;
+  }
+  if (!currency || typeof currency !== 'string') {
+    const error = new Error('Currency is required.');
+    error.code = 'INVALID_CURRENCY';
+    throw error;
+  }
+  return getRazorpayClient().orders.create({
+    amount: normalizedAmount,
+    currency: currency.toUpperCase(),
+    receipt: String(receipt || `wg_${Date.now()}`).slice(0, 40),
+    ...(notes ? { notes } : {})
+  });
+}
+
+function verifyRazorpaySignature(orderId, paymentId, signature) {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret || !orderId || !paymentId || !signature) return false;
+  const expected = crypto.createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest('hex');
+  const received = Buffer.from(String(signature), 'utf8');
+  const generated = Buffer.from(expected, 'utf8');
+  return received.length === generated.length && crypto.timingSafeEqual(received, generated);
+}
+
+function sendRazorpayError(error, res) {
+  if (error.code === 'INVALID_AMOUNT' || error.code === 'INVALID_CURRENCY') return res.status(400).json({ message: error.message });
+  if (error.code === 'RAZORPAY_NOT_CONFIGURED') return res.status(503).json({ message: error.message });
+  if (error.statusCode === 401 || error.status === 401 || (error.error?.code === 'BAD_REQUEST_ERROR' && error.error?.description?.toLowerCase().includes('authentication'))) {
+    return res.status(401).json({ message: 'Razorpay authentication failed. Check the server credentials.' });
+  }
+  console.error('Razorpay API error:', error.error?.description || error.message || error);
+  return res.status(500).json({ message: 'Razorpay order creation failed.' });
+}
+
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json({ limit: '2mb' }));
@@ -286,12 +343,26 @@ app.post('/api/v1/orders', requireAuth, async (req, res) => {
   let razorpayOrderId = null;
   const razorpayConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
   if (razorpayConfigured) {
-    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', { method: 'POST', headers: { Authorization: `Basic ${Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64')}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: Math.round(selectedPackage.price * 100), currency: 'INR', receipt: `wg_${result.insertId}`, notes: { projectId: String(projectId), userId: String(req.user.id) } }) });
-    if (!razorpayResponse.ok) return res.status(502).json({ message: 'Razorpay order creation failed. The local order remains pending for reconciliation.' });
-    const razorpayOrder = await razorpayResponse.json(); razorpayOrderId = razorpayOrder.id;
-    await pool.query('UPDATE orders SET razorpay_order_id = ? WHERE id = ?', [razorpayOrderId, result.insertId]);
+    try {
+      const razorpayOrder = await createRazorpayOrder({ amount: Math.round(selectedPackage.price * 100), currency: 'INR', receipt: `wg_${result.insertId}`, notes: { projectId: String(projectId), userId: String(req.user.id) } });
+      razorpayOrderId = razorpayOrder.id;
+      await pool.query('UPDATE orders SET razorpay_order_id = ? WHERE id = ?', [razorpayOrderId, result.insertId]);
+    } catch (error) {
+      return sendRazorpayError(error, res);
+    }
   }
   res.status(201).json({ id: result.insertId, amount: selectedPackage.price, currency: 'INR', status: 'pending', razorpayConfigured, razorpayOrderId, razorpayKeyId: razorpayConfigured ? process.env.RAZORPAY_KEY_ID : null, message: razorpayConfigured ? 'Razorpay checkout order created.' : 'Order created. Add Razorpay keys to enable checkout.' });
+});
+
+app.post(['/api/create-order', '/api/v1/create-order'], async (req, res) => {
+  const { amount, currency = 'INR', receipt, notes } = req.body || {};
+  if (normalizeRazorpayAmount(amount) === null) return res.status(400).json({ message: 'Amount must be an integer of at least 100 paise.' });
+  try {
+    const order = await createRazorpayOrder({ amount, currency, receipt, notes });
+    res.status(201).json({ order_id: order.id, amount: order.amount, currency: order.currency });
+  } catch (error) {
+    sendRazorpayError(error, res);
+  }
 });
 
 app.get('/api/v1/orders', requireAuth, async (req, res) => {
@@ -303,15 +374,23 @@ app.post('/api/v1/payments/verify', requireAuth, async (req, res) => {
   const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body || {};
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return res.status(503).json({ message: 'Razorpay secret is not configured.' });
+  if (!orderId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) return res.status(400).json({ message: 'Payment verification fields are required.' });
   const [[order]] = await pool.query('SELECT * FROM orders WHERE id = ? AND user_id = ?', [orderId, req.user.id]);
   if (!order || order.razorpay_order_id !== razorpayOrderId) return res.status(404).json({ message: 'Order not found.' });
-  const expected = crypto.createHmac('sha256', secret).update(`${razorpayOrderId}|${razorpayPaymentId}`).digest('hex');
-  if (!razorpaySignature || razorpaySignature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(razorpaySignature), Buffer.from(expected))) return res.status(400).json({ message: 'Payment signature verification failed.' });
+  if (!verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) return res.status(400).json({ message: 'Payment signature verification failed.' });
   await pool.query('UPDATE orders SET status = "paid", razorpay_payment_id = ?, razorpay_signature = ? WHERE id = ?', [razorpayPaymentId, razorpaySignature, orderId]);
   await pool.query('UPDATE website_projects SET status = "paid" WHERE id = ?', [order.project_id]);
   const [[existingArtifact]] = await pool.query('SELECT id, filename, size_bytes AS sizeBytes, sha256 FROM source_code_artifacts WHERE order_id = ?', [orderId]);
   const artifact = existingArtifact || await createSourceArtifact(orderId, req.user.id);
   res.json({ ok: true, status: 'paid', artifact });
+});
+
+app.post(['/api/verify-payment', '/api/v1/verify-payment'], async (req, res) => {
+  const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body || {};
+  if (!orderId || !paymentId || !signature) return res.status(400).json({ message: 'razorpay_order_id, razorpay_payment_id, and razorpay_signature are required.' });
+  if (!process.env.RAZORPAY_KEY_SECRET) return res.status(503).json({ message: 'Razorpay secret is not configured.' });
+  if (!verifyRazorpaySignature(orderId, paymentId, signature)) return res.status(400).json({ success: false, message: 'Payment signature verification failed.' });
+  res.json({ success: true, razorpay_order_id: orderId, razorpay_payment_id: paymentId });
 });
 
 app.post('/api/v1/source-code/generate', requireAuth, async (req, res) => {
