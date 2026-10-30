@@ -138,7 +138,7 @@ async function seedDatabase() {
     await pool.query('INSERT INTO templates (category_id, name, slug, description, pages, type, price, featured, demo, thumbnail_url, palette, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)', [category.id, name, slug, description, pages, type, price, Boolean(featured), thumbnail, palette, JSON.stringify(['Responsive layout', 'Content editor', 'Preview before purchase'])]);
   }
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
-    await pool.query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, "admin") ON DUPLICATE KEY UPDATE role = "admin"', ['WebBasket Admin', process.env.ADMIN_EMAIL, hashPassword(process.env.ADMIN_PASSWORD)]);
+    await pool.query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, "admin") ON DUPLICATE KEY UPDATE name = VALUES(name), password_hash = VALUES(password_hash), role = "admin"', ['WebBasket Admin', process.env.ADMIN_EMAIL, hashPassword(process.env.ADMIN_PASSWORD)]);
   }
 }
 
@@ -485,6 +485,11 @@ app.get('/api/v1/admin/enquiries', requireAdmin, async (_req, res) => {
 
 app.get('/api/v1/admin/deployment-requests', requireAdmin, async (_req, res) => {
   const [rows] = await pool.query('SELECT d.*, p.project_name FROM deployment_requests d JOIN website_projects p ON p.id = d.project_id ORDER BY d.created_at DESC');
+  res.json(rows);
+});
+
+app.get('/api/v1/admin/orders', requireAdmin, async (_req, res) => {
+  const [rows] = await pool.query('SELECT o.*, p.project_name, u.name AS customer_name, u.email AS customer_email FROM orders o JOIN website_projects p ON p.id = o.project_id LEFT JOIN users u ON u.id = o.user_id ORDER BY o.created_at DESC');
   res.json(rows);
 });
 

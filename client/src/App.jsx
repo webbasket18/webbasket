@@ -436,7 +436,7 @@ function App() {
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/builder/:templateId" element={<BuilderV4 templates={templates} onToast={showToast} />} />
       <Route path="/dashboard" element={<DashboardV2 />} />
-      <Route path="/admin" element={<AdminV2 />} />
+      <Route path="/admin" element={<AdminV3 />} />
       <Route path="*" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
     </Routes>
     <WhatsAppFloat />
@@ -1526,6 +1526,149 @@ function AdminV2() {
   const [locked, setLocked] = useState(false);
   useEffect(() => { fetch(`${API}/admin/overview`, { headers: { Authorization: `Bearer ${localStorage.getItem('webguruji_token') || ''}` } }).then(async (response) => { if (response.status === 401 || response.status === 403) { setLocked(true); return null; } if (!response.ok) throw new Error(); return response.json(); }).then((data) => data && setOverview(data)).catch(() => setLocked(true)); }, []);
   return <main className="app-page section-pad"><div className="container app-shell"><aside className="app-sidebar admin-sidebar"><div className="admin-lock"><span className="brand-mark">wg</span><div><b>Web Guruji</b><span>Admin console</span></div></div>{[[LayoutDashboard, 'Overview'], [Store, 'Templates'], [Building2, 'Categories'], [FileText, 'Orders'], [Rocket, 'Deployments'], [BarChart3, 'Reports'], [ShieldCheck, 'Settings']].map(([Icon, label], index) => <button className={index === 0 ? 'active' : ''} key={label}><Icon size={16} />{label}</button>)}</aside><section className="app-content"><div className="app-topbar"><div><span className="crumb">Admin / Overview</span><h1>Good morning, team.</h1></div><span className="admin-badge"><ShieldCheck size={14} /> Protected console</span></div>{locked && <div className="price-disclosure"><ShieldCheck size={19} /><div><b>Admin authentication required.</b><span>Sign in with a user whose database role is <code>admin</code> before viewing live overview data.</span></div></div>}<div className="admin-stats stats-grid"><StatCard label="Customers" value={overview.customers} icon={Building2} detail="Registered accounts" /><StatCard label="Templates" value={overview.templates} icon={Store} detail="Published and demo" /><StatCard label="Projects" value={overview.projects} icon={Monitor} detail="Website drafts" /><StatCard label="Enquiries" value={overview.enquiries} icon={MessageCircle} detail="Needs a response" /></div><div className="admin-content-grid"><div className="dashboard-panel"><div className="panel-heading"><div><span className="eyebrow">Marketplace health</span><h2>Keep the shelf useful.</h2></div><button className="button button-outline button-small">Manage templates <ArrowRight size={14} /></button></div><div className="chart-placeholder"><div className="chart-axis"><span>12</span><span>9</span><span>6</span><span>3</span><span>0</span></div><div className="bars">{[38, 56, 47, 72, 61, 84, 68, 92, 78, 87, 74, 96].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="chart-labels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div></div></div><div className="dashboard-panel admin-list"><div className="panel-heading"><div><span className="eyebrow">Review queue</span><h2>{locked ? 'Locked for safety.' : 'Nothing waiting.'}</h2></div><Clock3 size={18} /></div><div className="empty-mini"><Check size={19} /><p>{locked ? 'Live admin records are hidden until authentication succeeds.' : 'New enquiries and deployment requests will appear here.'}</p></div></div></div></section></div></main>;
+}
+
+const adminSectionConfig = {
+  Templates: { endpoint: '/templates', description: 'Review the templates currently published in the marketplace.', columns: ['name', 'category_name', 'type', 'price'] },
+  Categories: { endpoint: '/categories', description: 'Keep the marketplace categories organized and discoverable.', columns: ['name', 'slug', 'description'] },
+  Orders: { endpoint: '/admin/orders', description: 'Review customer orders and payment status.', columns: ['id', 'status', 'amount', 'customer_name', 'created_at'] },
+  Deployments: { endpoint: '/admin/deployment-requests', description: 'Track website launch requests from customers.', columns: ['id', 'status', 'domain', 'created_at'] },
+};
+
+function AdminLoginCard({ onSuccess }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Could not sign in.');
+      if (data.user?.role !== 'admin') throw new Error('This account does not have administrator access.');
+      localStorage.setItem('webguruji_token', data.token);
+      localStorage.setItem('webguruji_user', JSON.stringify(data.user));
+      onSuccess(data.user);
+    } catch (submitError) {
+      setError(submitError.message || 'Could not sign in.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return <div className="admin-login-card">
+    <div className="admin-login-mark"><ShieldCheck size={22} /></div>
+    <span className="eyebrow">Protected console</span>
+    <h2>Sign in to admin.</h2>
+    <p>Use the administrator email and password configured for this WebBasket installation.</p>
+    <form onSubmit={submit}>
+      <label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@webbasket.org" autoComplete="username" required /></label>
+      <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter admin password" autoComplete="current-password" required /></label>
+      {error && <div className="admin-login-error"><X size={14} />{error}</div>}
+      <button className="button button-orange" type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Open admin panel'} <ArrowRight size={15} /></button>
+    </form>
+    <small>Need access? Set <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code> in the server environment, then redeploy.</small>
+  </div>;
+}
+
+function AdminDataSection({ section, rows, loading, onReload }) {
+  const config = adminSectionConfig[section];
+  const formatValue = (key, row) => {
+    const value = row?.[key];
+    if (value === null || value === undefined || value === '') return '—';
+    if (key === 'price' || key === 'amount') return `₹${Number(value).toLocaleString('en-IN')}`;
+    if (key === 'created_at') return new Date(value).toLocaleDateString('en-IN');
+    return String(value);
+  };
+
+  return <div className="admin-table-panel">
+    <div className="panel-heading">
+      <div><span className="eyebrow">Admin / {section}</span><h2>{section} workspace</h2><p>{config.description}</p></div>
+      <button className="button button-outline button-small" onClick={onReload} disabled={loading}><RotateCcw size={14} /> {loading ? 'Loading…' : 'Refresh'}</button>
+    </div>
+    {loading ? <div className="admin-table-empty">Loading live records…</div> : rows.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr>{config.columns.map((column) => <th key={column}>{column.replace('_', ' ')}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={row.id || row.slug || index}>{config.columns.map((column) => <td key={column}>{formatValue(column, row)}</td>)}</tr>)}</tbody></table></div> : <div className="admin-table-empty"><Check size={18} />No {section.toLowerCase()} records found.</div>}
+  </div>;
+}
+
+function AdminV3() {
+  const navigate = useNavigate();
+  const adminSections = [[LayoutDashboard, 'Overview'], [Store, 'Templates'], [Building2, 'Categories'], [FileText, 'Orders'], [Rocket, 'Deployments'], [BarChart3, 'Reports'], [ShieldCheck, 'Settings']];
+  const [section, setSection] = useState('Overview');
+  const [user, setUser] = useState(() => { try { const stored = JSON.parse(localStorage.getItem('webguruji_user') || 'null'); return stored?.role === 'admin' ? stored : null; } catch { return null; } });
+  const [locked, setLocked] = useState(!localStorage.getItem('webguruji_token'));
+  const [overview, setOverview] = useState({ customers: 0, templates: 0, projects: 0, enquiries: 0 });
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const logout = async () => {
+    const token = localStorage.getItem('webguruji_token');
+    if (token) await fetch(`${API}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    localStorage.removeItem('webguruji_token');
+    localStorage.removeItem('webguruji_user');
+    setUser(null);
+    setLocked(true);
+  };
+
+  const loadOverview = async () => {
+    const token = localStorage.getItem('webguruji_token');
+    if (!token) { setLocked(true); return; }
+    setLoading(true);
+    try {
+      const response = await fetch(`${API}/admin/overview`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error('Admin authentication required.');
+      setOverview(await response.json());
+      setLocked(false);
+    } catch {
+      setLocked(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSection = async () => {
+    if (!user || !adminSectionConfig[section]) return;
+    const token = localStorage.getItem('webguruji_token');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API}${adminSectionConfig[section].endpoint}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setRows(Array.isArray(data) ? data : data.rows || []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (user) loadOverview(); }, [user]);
+  useEffect(() => { loadSection(); }, [section, user]);
+
+  const onLogin = (adminUser) => { setUser(adminUser); setLocked(false); };
+  const sectionTitle = section === 'Overview' ? 'Good morning, team.' : `${section} workspace.`;
+
+  return <main className="app-page section-pad"><div className="container app-shell admin-app-shell">
+    <aside className="app-sidebar admin-sidebar">
+      <div className="admin-lock"><span className="brand-mark">wg</span><div><b>WebBasket</b><span>Admin console</span></div></div>
+      {adminSections.map(([Icon, label]) => <button className={section === label ? 'active' : ''} key={label} onClick={() => setSection(label)}><Icon size={16} />{label}</button>)}
+      <div className="app-sidebar-bottom"><button onClick={() => navigate('/')}><HomeIcon size={16} />Back to marketplace</button></div>
+    </aside>
+    <section className="app-content">
+      <div className="app-topbar"><div><span className="crumb">Admin / {section}</span><h1>{sectionTitle}</h1></div><div className="admin-top-actions"><span className="admin-badge"><ShieldCheck size={14} /> Protected console</span>{user && <button className="button button-outline button-small" onClick={logout}>Sign out</button>}</div></div>
+      {locked ? <AdminLoginCard onSuccess={onLogin} /> : section === 'Overview' ? <>
+        <div className="admin-stats stats-grid"><StatCard label="Customers" value={overview.customers} icon={Building2} detail="Registered accounts" /><StatCard label="Templates" value={overview.templates} icon={Store} detail="Published and demo" /><StatCard label="Projects" value={overview.projects} icon={Monitor} detail="Website drafts" /><StatCard label="Enquiries" value={overview.enquiries} icon={MessageCircle} detail="Needs a response" /></div>
+        <div className="admin-content-grid"><div className="dashboard-panel"><div className="panel-heading"><div><span className="eyebrow">Marketplace health</span><h2>Keep the shelf useful.</h2><p>Live counts are loaded from your database after admin authentication.</p></div><button className="button button-outline button-small" onClick={loadOverview} disabled={loading}><RotateCcw size={14} /> Refresh</button></div><div className="chart-placeholder"><div className="chart-axis"><span>12</span><span>9</span><span>6</span><span>3</span><span>0</span></div><div className="bars">{[38, 56, 47, 72, 61, 84, 68, 92, 78, 87, 74, 96].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="chart-labels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div></div></div><div className="dashboard-panel admin-list"><div className="panel-heading"><div><span className="eyebrow">Review queue</span><h2>Console ready.</h2></div><Clock3 size={18} /></div><div className="empty-mini"><Check size={19} /><p>Use the sidebar to manage templates, categories, orders, deployment requests, and settings.</p></div></div></div>
+      </> : section === 'Reports' ? <div className="admin-report-grid"><div className="dashboard-panel"><span className="eyebrow">Reports</span><h2>Marketplace summary.</h2><p>Customers, templates, projects and enquiries are available in the overview cards. Use the other sections to inspect individual records.</p><button className="button button-orange button-small" onClick={() => setSection('Overview')}>Back to overview <ArrowRight size={14} /></button></div><div className="dashboard-panel"><span className="eyebrow">Access</span><h2>Signed in securely.</h2><p>{user?.email}<br />Role: <b>{user?.role}</b></p></div></div> : section === 'Settings' ? <div className="dashboard-panel admin-settings-panel"><span className="eyebrow">Settings</span><h2>Administrator account.</h2><p>Signed in as <b>{user?.email}</b>. Only users with the database role <code>admin</code> can access live records.</p><div className="admin-settings-actions"><button className="button button-outline" onClick={logout}>Sign out <ArrowRight size={14} /></button><button className="button button-dark" onClick={() => navigate('/')}>Open marketplace <ArrowRight size={14} /></button></div></div> : <AdminDataSection section={section} rows={rows} loading={loading} onReload={loadSection} />}
+    </section>
+  </div></main>;
 }
 
 function DashboardV2() {
