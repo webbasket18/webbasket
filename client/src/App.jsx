@@ -411,12 +411,29 @@ function openServiceWhatsApp(serviceName) {
   window.open(href, '_blank', 'noopener,noreferrer');
 }
 
+function MotionPage({ children }) {
+  const pageRef = useRef(null);
+  useEffect(() => {
+    const root = pageRef.current;
+    if (!root) return undefined;
+    const selector = '.section-pad, .premium-banner-section, .hero-trust-strip, .marketplace-hero, .marketplace-toolbar, .marketplace-layout, .category-card, .template-card, .step, .service-card, .plans-grid > *, .services-page-hero, .service-page-row, .services-page-note, .builder-workspace, .app-shell, .admin-template-upload, .admin-table-panel, .dashboard-panel';
+    const revealObserver = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); } }), { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    const prepare = () => root.querySelectorAll(selector).forEach((element) => { if (!element.classList.contains('scroll-reveal')) { element.classList.add('scroll-reveal'); revealObserver.observe(element); } });
+    prepare();
+    const mutationObserver = new MutationObserver(prepare);
+    mutationObserver.observe(root, { childList: true, subtree: true });
+    return () => { mutationObserver.disconnect(); revealObserver.disconnect(); };
+  }, []);
+  return <motion.div ref={pageRef} className="route-motion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .42, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div>;
+}
+
 function App() {
   const [templates, setTemplates] = useState(allDemoTemplates);
   const [categoriesData, setCategoriesData] = useState(expandedCategories);
   const [accountOpen, setAccountOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [language, setLanguage] = useState('en');
+  const location = useLocation();
 
   useEffect(() => {
     Promise.all([fetch(`${API}/templates`).then((r) => r.ok ? r.json() : Promise.reject()), fetch(`${API}/categories`).then((r) => r.ok ? r.json() : Promise.reject())])
@@ -429,7 +446,7 @@ function App() {
     <SiteChrome onAccount={() => setAccountOpen(true)} language={language} onLanguageChange={setLanguage} />
     <MarathiTranslator language={language} />
     <SEOManager templates={templates} />
-    <Routes>
+    <AnimatePresence mode="wait" initial={false}><MotionPage key={location.pathname}><Routes location={location}>
       <Route path="/" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
       <Route path="/templates" element={<MarketplaceEnhanced templates={templates} categories={categoriesData} />} />
       <Route path="/pricing" element={<Pricing onToast={showToast} />} />
@@ -438,7 +455,7 @@ function App() {
       <Route path="/dashboard" element={<DashboardV2 />} />
       <Route path="/admin" element={<AdminV3 />} />
       <Route path="*" element={<Home templates={templates} categories={categoriesData} onToast={showToast} />} />
-    </Routes>
+    </Routes></MotionPage></AnimatePresence>
     <WhatsAppFloat />
     <SiteFooterV2 />
     <AnimatePresence>{accountOpen && <AuthModal onClose={() => setAccountOpen(false)} onToast={showToast} />}</AnimatePresence>

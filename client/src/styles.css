@@ -957,3 +957,31 @@ h1, h2, h3 { font-family: Manrope, sans-serif; letter-spacing: -.04em; line-heig
 @media (max-width:600px) { .admin-template-upload-grid { grid-template-columns: 1fr; }.admin-template-field-row { grid-template-columns: 1fr; }.admin-template-field-row .icon-button { justify-self: end; }.uploaded-template-frame.viewport-tablet iframe { margin-left: 0; } }
 @media (max-width:900px) { .admin-template-edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width:600px) { .admin-template-edit-grid { grid-template-columns: 1fr; } .admin-table-actions { flex-direction: column; align-items: flex-start; } }
+
+/* MotionSites-inspired motion layer: soft reveals, floating product cards and route transitions. */
+.route-motion { min-height: 1px; overflow: visible; }
+.scroll-reveal { opacity: 0; transform: translateY(24px) scale(.985); transition: opacity .72s cubic-bezier(.22,1,.36,1), transform .72s cubic-bezier(.22,1,.36,1); }
+.scroll-reveal.is-visible { opacity: 1; transform: none; }
+.category-grid .scroll-reveal:nth-child(2), .template-grid .scroll-reveal:nth-child(2), .steps-grid .scroll-reveal:nth-child(2), .service-grid .scroll-reveal:nth-child(2) { transition-delay: .08s; }
+.category-grid .scroll-reveal:nth-child(3), .template-grid .scroll-reveal:nth-child(3), .steps-grid .scroll-reveal:nth-child(3), .service-grid .scroll-reveal:nth-child(3) { transition-delay: .16s; }
+.category-grid .scroll-reveal:nth-child(4), .template-grid .scroll-reveal:nth-child(4), .steps-grid .scroll-reveal:nth-child(4), .service-grid .scroll-reveal:nth-child(4) { transition-delay: .24s; }
+.hero-visual .browser-main { animation: motion-browser-float 7s ease-in-out infinite; }
+.hero-visual .floating-phone { animation: motion-phone-float 5.5s ease-in-out infinite; }
+.hero-visual .edit-chip { animation: motion-chip-float 6s ease-in-out infinite; }
+.hero-visual .draft-card { animation: motion-draft-float 5s ease-in-out infinite; }
+.premium-banner-glow { animation: motion-glow-breathe 6s ease-in-out infinite; }
+.premium-banner-glow-two { animation-delay: -2.2s; }
+.premium-banner-art .banner-art-ring { animation: motion-orbit 14s linear infinite; }
+.premium-banner-art .ring-two { animation-direction: reverse; animation-duration: 19s; }
+.hero-feature-grid span, .service-card, .step, .mini-plan { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.hero-feature-grid span:hover, .service-card:hover, .step:hover, .mini-plan:hover { transform: translateY(-5px); box-shadow: 0 16px 32px rgba(7,59,145,.12); }
+@keyframes motion-browser-float { 0%, 100% { transform: rotate(1.4deg) translateY(0); } 50% { transform: rotate(.4deg) translateY(-8px); } }
+@keyframes motion-phone-float { 0%, 100% { transform: translateY(0) rotate(4deg); } 50% { transform: translateY(-12px) rotate(1deg); } }
+@keyframes motion-chip-float { 0%, 100% { transform: translateY(0) rotate(3deg); } 50% { transform: translateY(-7px) rotate(5deg); } }
+@keyframes motion-draft-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(-1deg); } }
+@keyframes motion-glow-breathe { 0%, 100% { opacity: .5; transform: scale(1); } 50% { opacity: .9; transform: scale(1.08); } }
+@keyframes motion-orbit { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal { opacity: 1; transform: none; transition: none; }
+  .hero-visual .browser-main, .hero-visual .floating-phone, .hero-visual .edit-chip, .hero-visual .draft-card, .premium-banner-glow, .premium-banner-art .banner-art-ring { animation: none; }
+}
