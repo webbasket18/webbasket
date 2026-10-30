@@ -560,7 +560,7 @@ function sanitizeTemplatePath(value = '') {
 }
 
 app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('files', 300), async (req, res) => {
-  const { name, slug: requestedSlug, description, categoryId, price = 1000, pages = 1, type = 'Static', featured = 'false', replaceExisting = 'false', formSchema = '[]' } = req.body || {};
+  const { name, slug: requestedSlug, description, categoryId, price = 1000, pages = 1, type = 'Static', featured = 'false', replaceExisting = 'false', formSchema = '[]', filePaths = '[]' } = req.body || {};
   if (!name || !description || !categoryId) return res.status(400).json({ message: 'Name, description, category and template folder are required.' });
   if (!req.files?.length) return res.status(400).json({ message: 'Choose a template folder containing index.html.' });
   if (!req.files.some((file) => path.basename(sanitizeTemplatePath(file.originalname)).toLowerCase() === 'index.html')) return res.status(400).json({ message: 'The uploaded folder must contain index.html.' });
@@ -574,7 +574,10 @@ app.post('/api/v1/admin/templates/upload', requireAdmin, templateUpload.array('f
   if (existing && !shouldReplace) return res.status(409).json({ message: 'A template with this slug already exists. Select replace existing template to update it.' });
   const [[category]] = await pool.query('SELECT id, name, slug FROM categories WHERE id = ?', [categoryId]);
   if (!category) return res.status(400).json({ message: 'Selected category was not found.' });
-  const rawPaths = req.files.map((file) => sanitizeTemplatePath(file.originalname));
+  let parsedFilePaths;
+  try { parsedFilePaths = JSON.parse(filePaths); } catch { parsedFilePaths = []; }
+  const submittedPaths = Array.isArray(parsedFilePaths) && parsedFilePaths.length === req.files.length ? parsedFilePaths : req.files.map((file) => file.originalname);
+  const rawPaths = submittedPaths.map((filePath, index) => sanitizeTemplatePath(filePath || req.files[index].originalname));
   const indexPath = rawPaths.find((filePath) => path.basename(filePath).toLowerCase() === 'index.html');
   const firstSegment = indexPath.includes('/') ? indexPath.split('/')[0] : '';
   const hasCommonRoot = firstSegment && rawPaths.every((filePath) => filePath === firstSegment || filePath.startsWith(`${firstSegment}/`));

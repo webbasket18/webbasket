@@ -1727,6 +1727,7 @@ function AdminTemplateUpload({ categories: categoryRows, onUploaded }) {
     const cleanedFields = fields.filter((field) => field.key.trim() && field.label.trim()).map((field) => ({ ...field, key: field.key.trim().replace(/[^a-zA-Z0-9_-]/g, '_'), label: field.label.trim() }));
     const body = new FormData();
     body.append('name', name.trim()); body.append('slug', slug.trim()); body.append('description', description.trim()); body.append('categoryId', categoryId); body.append('price', price); body.append('pages', pages); body.append('type', type); body.append('featured', String(featured)); body.append('replaceExisting', String(replaceExisting)); body.append('formSchema', JSON.stringify(cleanedFields));
+    body.append('filePaths', JSON.stringify(files.map((file) => file.webkitRelativePath || file.name)));
     files.forEach((file) => body.append('files', file, file.webkitRelativePath || file.name));
     setSubmitting(true);
     try {
